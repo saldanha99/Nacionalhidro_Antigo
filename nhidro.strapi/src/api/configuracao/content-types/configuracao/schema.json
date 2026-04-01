@@ -1,0 +1,22 @@
+{
+  "kind": "collectionType",
+  "collectionName": "configuracoes",
+  "info": {
+    "singularName": "configuracao",
+    "pluralName": "configuracoes",
+    "displayName": "Configuracao",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Descricao": {
+      "type": "string"
+    },
+    "Valor": {
+      "type": "text"
+    }
+  }
+}

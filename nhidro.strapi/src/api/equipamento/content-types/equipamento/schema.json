@@ -1,0 +1,48 @@
+{
+  "kind": "collectionType",
+  "collectionName": "equipamentos",
+  "info": {
+    "singularName": "equipamento",
+    "pluralName": "equipamentos",
+    "displayName": "Equipamento",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Equipamento": {
+      "type": "string"
+    },
+    "Descricao": {
+      "type": "text"
+    },
+    "Ativo": {
+      "type": "boolean"
+    },
+    "EquipamentoResponsabilidades": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::equipamento-responsabilidade.equipamento-responsabilidade"
+    },
+    "EquipamentoAcessorios": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::equipamento-acessorio.equipamento-acessorio"
+    },
+    "UrlImagem": {
+      "type": "string"
+    },
+    "Veiculos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::veiculo.veiculo"
+    },
+    "NaturezaContabil": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::natureza-contabil.natureza-contabil"
+    }
+  }
+}

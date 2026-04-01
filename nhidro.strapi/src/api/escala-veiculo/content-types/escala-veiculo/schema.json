@@ -1,0 +1,23 @@
+{
+  "kind": "collectionType",
+  "collectionName": "escala_veiculos",
+  "info": {
+    "singularName": "escala-veiculo",
+    "pluralName": "escala-veiculos",
+    "displayName": "EscalaVeiculo"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Veiculo": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::veiculo.veiculo"
+    },
+    "Manutencao": {
+      "type": "boolean"
+    }
+  }
+}

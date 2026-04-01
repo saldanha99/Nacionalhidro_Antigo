@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "contas_naturezas_contabeis",
+  "info": {
+    "singularName": "conta-natureza-contabil",
+    "pluralName": "contas-naturezas-contabeis",
+    "displayName": "ContaNaturezaContabil",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Valor": {
+      "type": "decimal"
+    },
+    "NaturezaContabil": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::natureza-contabil.natureza-contabil"
+    }
+  }
+}

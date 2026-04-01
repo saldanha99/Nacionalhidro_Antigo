@@ -1,0 +1,279 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>Relatório</title>
+  <meta charset="utf-8" content="width=device-width, initial-scale=0.5">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+    integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+
+  <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>
+  <style>
+    .page-footer,
+    .page-footer-space {
+      height: 90px;
+
+    }
+
+    .page-footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      text-align: center;
+    }
+
+    .page {
+      page-break-after: always;
+    }
+
+    @page {
+      margin: 8mm
+    }
+
+    @media print {
+      tfoot {
+        display: table-footer-group;
+      }
+    }
+
+    .body {
+      font-size: 12px;
+    }
+
+    .logo-header {
+      display: table-cell;
+      position: relative;
+      margin-right: 30px;
+      top: 70px;
+    }
+
+    .cabecalho {
+      display: table-cell;
+    }
+
+    .cabecalho h6 {
+      font-weight: 400;
+    }
+
+    .cabecalho-relatorio {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .cabecalho-relatorio h2 {
+      margin-bottom: 1rem;
+    }
+
+    .fone-email {
+      display: table;
+    }
+
+    .fone-email h6 {
+      display: table-cell;
+    }
+
+    .fone-email .email {
+      position: relative;
+      left: 258px;
+    }
+
+    .section hr {
+      border-top: 2px solid #212529bd;
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section .titulo {
+      text-align: center;
+    }
+
+    .section .titulo .titulo-nome {
+      font-weight: 700 !important;
+    }
+
+    .section .desc h6 {
+      font-weight: 400;
+    }
+
+    .locacao {
+      display: table;
+    }
+
+    .locacao p {
+      display: table-cell;
+    }
+
+    .locacao .valorLocacao {
+      position: relative;
+      left: 107px;
+    }
+
+    .servico {
+      display: table;
+    }
+
+    .servico p {
+      display: table-cell;
+    }
+
+    .servico .valorServico {
+      position: relative;
+      left: 258px;
+    }
+
+    .contato {
+      display: table;
+    }
+
+    .logo-contato {
+      display: table-cell;
+      position: relative;
+      top: 40px;
+      object-fit: contain;
+      margin-right: 50px;
+    }
+
+    .contato .info {
+      display: table-cell;
+      border-left: 1px solid #b6b0b0;
+      padding: 20px;
+    }
+  </style>
+</head>
+
+<body class="body">
+  <div class="page-footer">
+    <p style="margin-bottom: 0px;"><b>NACIONAL HIDRO</b></p>
+    <p style="margin-bottom: 0px;">{{footer.endereco}}</p>
+    <p>{{footer.website}} - TEL: {{footer.telefone}}</p>
+  </div>
+  <table style="border: none;">
+    <tbody>
+      <tr>
+        <td>
+          <div class="page">
+            <div class="paging">
+              <div class="containter pdf">
+                <div>
+                  <img src="http://www.nacionalhidro.com.br/site/wp-content/uploads/2016/03/logo-nacional-hidro-7.png"
+                    alt="Nacional Hidro" width="120">
+                </div>
+                <div style="margin-top: 4%; text-align: center;">
+                  <h5>RELATÓRIO DE MEDIÇÃO Nº {{Medicao}}</h3>
+                </div>
+                <div style="margin-bottom: 2%;">
+                  <p style="margin-bottom: 0px;">CLIENTE: <b style="margin-left: 100px;">{{Cliente.RazaoSocial}}</b></p>
+                  <p style="margin-bottom: 0px;">CONTATO: <b style="margin-left: 90px; margin-right: 20%;">{{ContatoNome}}</b> | E-MAIL: <b
+                      style="margin-right: 7%;">{{ContatoEmail}}</b> | TEL.: {{ContatoTelefone}}</p>
+                  <p style="margin-bottom: 0px;">SOLICITANTE: <b style="margin-left: 74px;">{{Solicitante}}</b></p>
+                  <p>DATA DE EMISSÃO: <b style="margin-left: 43px;">{{DataEmissao}}</b></p>
+                </div>
+                <div>
+                  <p><b>Nº Proposta: </b>{{Proposta}} - <b>Período de Apuração: </b> {{Periodo}}</p>
+                </div>
+                <div class="table-responsive">
+                  <table class="table" style="border: 1px solid #dee2e6;">
+                    <tr>
+                      {{#headers}}
+                      <th style="max-width: 90px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{.}}</th>
+                      {{/headers}}
+                    </tr>
+                    {{#ordens}}
+                    <tr>
+                      <td style="max-width: 90px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{DataInicial}}</td>
+                      <td style="max-width: 90px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{Codigo}}/{{Numero}}</td>
+                      <td style="max-width: 120px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{Placa}}</td>
+                      <td style="max-width: 125px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{Equipamento}}</td>
+                      <td style="max-width: 125px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{DescricaoServico}}</td>
+                      <td style="max-width: 90px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{TipoCobranca}}</td>
+                      <td style="max-width: 90px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{ValorUnitario}}</td>
+                      <td style="max-width: 90px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{HoraEntradaSaida}}</td>
+                      <td style="max-width: 90px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{Qtd}}</td>
+                      <td style="max-width: 90px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{QuantidadeHorasAdicionais}}</td>
+                      <td style="max-width: 90px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{ValorExtraHora}}</td>
+                      <td style="max-width: 90px; overflow-wrap: break-word; border: 1px solid #dee2e6;">{{ValorTotal}}</td>
+                    </tr>
+                    {{/ordens}}
+                    <tr style="text-align: right;">
+                      <td style="border: 1px solid #dee2e6;" colspan="11">TOTAL DOS SERVIÇOS</td>
+                      <td style="border: 1px solid #dee2e6;">{{TotalServicos}}</td>
+                    </tr>
+                  </table>
+                </div>
+                <div class="table-responsive" style="width: 27%; float: right">
+                  <table class="table" style="text-align: right;border: 1px solid #dee2e6;">
+                    <tr>
+                      <td style="border: 1px solid #dee2e6;">DESCONTO CONCEDIDOS</td>
+                      <td style="border: 1px solid #dee2e6;">{{Desconto}}</td>
+                    </tr>
+                    <tr>
+                      <td style="border: 1px solid #dee2e6;">VALORES EXTRAS</td>
+                      <td style="border: 1px solid #dee2e6;">{{Extra}}</td>
+                    </tr>
+                    <tr>
+                      <td style="border: 1px solid #dee2e6;">TOTAL A PAGAR</td>
+                      <td style="border: 1px solid #dee2e6;">{{ValorTotal}}</td>
+                    </tr>
+                  </table>
+                </div>
+                <div style="display: inline-block; width: 100%">
+                  <hr>
+                  <p style="text-align: center;"><b>DEMONSTRATIVO DE EMISSÃO DO FATURAMENTO</b></p>
+                  <hr>
+                  <div style="width: 100%">
+                    {{#ValorLocacao}}
+                    <div class="locacao" style="width: 30%;">
+                      <p style="width: 70%;">{{ PorcentagemLocacao }}% LOCAÇÃO DE EQUIPAMENTO: </p>
+                      <p style="text-align: right">{{ ValorLocacao }}</p>
+                    </div><br>
+                    {{/ValorLocacao}}
+                    {{#ValorServico}}
+                    <div class="servico" style="width: 30%;">
+                      <p style="width: 70%;">{{ PorcentagemServico }}% SERVIÇO: </p>
+                      <p style="text-align: right">{{ ValorServico }}</p>
+                    </div><br>
+                    {{/ValorServico}}
+                    {{#ValorCte}}
+                    <div class="servico" style="width: 30%;">
+                      <p style="width: 70%;">{{ PorcentagemCTE }}% CTE: </p>
+                      <p style="text-align: right">{{ ValorCte }}</p>
+                    </div>
+                    {{/ValorCte}}
+                  </div>
+                  <div>
+                    <hr class="mt-5">
+                  </div>
+                </div>
+
+                <div style="margin-top: 2%; margin-bottom: 5%; text-align: center; font-size: 10px;">
+                  <i>"Prezado Cliente Aguardamos a aprovação da medição num prazo de até 2 dias corridos a contar do seu
+                    recebimento; sujeito a cobranças de multa e juros conforme previsto em proposta"</i>
+                </div>
+
+                <div class="contato" style="page-break-inside: avoid; padding-top: 5%;">
+                  <img class="logo-contato"
+                    src="http://www.nacionalhidro.com.br/site/wp-content/uploads/2016/03/logo-nacional-hidro-7.png"
+                    alt="Nacional Hidro" width="105">
+                  <div class="info">
+                    <p style="margin-bottom: 0px;">{{contato.nome}}</p>
+                    <p style="margin-bottom: 0px;">E-MAIL: {{contato.email}}</p>
+                    <p>CEL/WAPP: {{contato.telefone}}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td>
+          <div class="page-footer-space">&nbsp;</div>
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+</body>
+
+</html>

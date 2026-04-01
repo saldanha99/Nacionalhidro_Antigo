@@ -1,0 +1,48 @@
+{
+  "kind": "collectionType",
+  "collectionName": "proposta_equipamentos",
+  "info": {
+    "singularName": "proposta-equipamento",
+    "pluralName": "proposta-equipamentos",
+    "displayName": "PropostaEquipamento",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Equipamento": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::equipamento.equipamento"
+    },
+    "TipoCobranca": {
+      "type": "integer"
+    },
+    "ValorCobranca": {
+      "type": "decimal"
+    },
+    "HorasDiaria": {
+      "type": "decimal"
+    },
+    "HoraAdicional": {
+      "type": "decimal"
+    },
+    "UsoPrevisto": {
+      "type": "decimal"
+    },
+    "ValorTotal": {
+      "type": "decimal"
+    },
+    "ValorMobilizacao": {
+      "type": "decimal"
+    },
+    "Area": {
+      "type": "string"
+    },
+    "Quantidade": {
+      "type": "integer"
+    }
+  }
+}

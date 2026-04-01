@@ -1,0 +1,137 @@
+{
+  "kind": "collectionType",
+  "collectionName": "faturamentos",
+  "info": {
+    "singularName": "faturamento",
+    "pluralName": "faturamentos",
+    "displayName": "Faturamento",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Medicao": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::medicao.medicao"
+    },
+    "UrlImagemAprovacao": {
+      "type": "string"
+    },
+    "TipoFatura": {
+      "type": "string"
+    },
+    "ValorTotal": {
+      "type": "decimal"
+    },
+    "ValorRateado": {
+      "type": "decimal"
+    },
+    "Status": {
+      "type": "integer"
+    },
+    "DataCriacao": {
+      "type": "datetime"
+    },
+    "DataEmissao": {
+      "type": "datetime"
+    },
+    "EmpresaBanco": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa-banco.empresa-banco"
+    },
+    "CondicaoPagamento": {
+      "type": "string"
+    },
+    "Descricao": {
+      "type": "text"
+    },
+    "Observacoes": {
+      "type": "text"
+    },
+    "DataCancelamento": {
+      "type": "datetime"
+    },
+    "MotivoCancelamento": {
+      "type": "string"
+    },
+    "DataEnvio": {
+      "type": "datetime"
+    },
+    "UrlArquivoNota": {
+      "type": "string"
+    },
+    "DataAprovacao": {
+      "type": "datetime"
+    },
+    "EmailCopia": {
+      "type": "string"
+    },
+    "Contato": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::contato.contato"
+    },
+    "Nota": {
+      "type": "string"
+    },
+    "Cliente": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::cliente.cliente"
+    },
+    "Empresa": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa.empresa"
+    },
+    "NumeroPedido": {
+      "type": "string"
+    },
+    "Revisao": {
+      "type": "integer"
+    },
+    "FocusReferencia": {
+      "type": "string"
+    },
+    "DadosComplementares": {
+      "type": "text"
+    },
+    "DadosFaturamento": {
+      "type": "json"
+    },
+    "DadosWebHook": {
+      "type": "json"
+    },
+    "StatusRecebimento": {
+      "type": "string"
+    },
+    "DataVencimento": {
+      "type": "date"
+    },
+    "ValorInss": {
+      "type": "decimal"
+    },
+    "ValorIss": {
+      "type": "decimal"
+    },
+    "ValorPis": {
+      "type": "decimal"
+    },
+    "ValorCofins": {
+      "type": "decimal"
+    },
+    "ValorIr": {
+      "type": "decimal"
+    },
+    "ValorCsll": {
+      "type": "decimal"
+    },
+    "ValorLiquido": {
+      "type": "decimal"
+    }
+  }
+}

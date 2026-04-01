@@ -1,0 +1,37 @@
+{
+  "kind": "collectionType",
+  "collectionName": "empresa_documentos",
+  "info": {
+    "singularName": "empresa-documento",
+    "pluralName": "empresa-documentos",
+    "displayName": "EmpresaDocumento",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Descricao": {
+      "type": "string"
+    },
+    "Empresa": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::empresa.empresa",
+      "inversedBy": "EmpresaDocumentos"
+    },
+    "UrlArquivo": {
+      "type": "string"
+    },
+    "DataVencimento": {
+      "type": "date"
+    },
+    "Deletado": {
+      "type": "boolean"
+    },
+    "MotivoExclusao": {
+      "type": "string"
+    }
+  }
+}

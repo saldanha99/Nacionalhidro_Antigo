@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "collectionName": "escala_funcionarios",
+  "info": {
+    "singularName": "escala-funcionario",
+    "pluralName": "escala-funcionarios",
+    "displayName": "EscalaFuncionario",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Funcionario": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::funcionario.funcionario"
+    },
+    "StatusOperacao": {
+      "type": "integer"
+    },
+    "Ausente": {
+      "type": "boolean",
+      "default": false,
+      "required": true
+    }
+  }
+}

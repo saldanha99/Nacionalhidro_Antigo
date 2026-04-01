@@ -1,0 +1,51 @@
+{
+  "kind": "collectionType",
+  "collectionName": "parcela_recebimentos",
+  "info": {
+    "singularName": "parcela-recebimento",
+    "pluralName": "parcela-recebimentos",
+    "displayName": "ParcelaRecebimento",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "EmpresaBanco": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa-banco.empresa-banco"
+    },
+    "Parcela": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::conta-recebimento-parcela.conta-recebimento-parcela",
+      "inversedBy": "ParcelasRecebimento"
+    },
+    "DataRecebimento": {
+      "type": "datetime"
+    },
+    "FormaPagamento": {
+      "type": "integer"
+    },
+    "Valor": {
+      "type": "decimal"
+    },
+    "TaxaJuros": {
+      "type": "decimal"
+    },
+    "ValorOperacao": {
+      "type": "decimal"
+    },
+    "Antecipar": {
+      "type": "boolean"
+    },
+    "Observacao": {
+      "type": "text"
+    },
+    "UsuarioBaixa": {
+      "type": "string"
+    }
+  }
+}

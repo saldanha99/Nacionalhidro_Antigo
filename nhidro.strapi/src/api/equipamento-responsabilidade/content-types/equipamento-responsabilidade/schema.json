@@ -1,0 +1,21 @@
+{
+  "kind": "collectionType",
+  "collectionName": "equipamento_responsabilidades",
+  "info": {
+    "singularName": "equipamento-responsabilidade",
+    "pluralName": "equipamento-responsabilidades",
+    "displayName": "EquipamentoResponsabilidade",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Responsabilidade": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::responsabilidade.responsabilidade"
+    }
+  }
+}

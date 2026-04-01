@@ -1,0 +1,30 @@
+{
+  "kind": "collectionType",
+  "collectionName": "empresas_bancos",
+  "info": {
+    "singularName": "empresa-banco",
+    "pluralName": "empresas-bancos",
+    "displayName": "EmpresaBanco"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Banco": {
+      "type": "string"
+    },
+    "Conta": {
+      "type": "string"
+    },
+    "Agencia": {
+      "type": "string"
+    },
+    "Empresa": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::empresa.empresa",
+      "inversedBy": "EmpresaBanco"
+    }
+  }
+}

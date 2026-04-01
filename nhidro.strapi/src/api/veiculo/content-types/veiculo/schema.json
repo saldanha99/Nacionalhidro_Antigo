@@ -1,0 +1,49 @@
+{
+  "kind": "collectionType",
+  "collectionName": "veiculos",
+  "info": {
+    "singularName": "veiculo",
+    "pluralName": "veiculos",
+    "displayName": "Veiculo",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Descricao": {
+      "type": "string"
+    },
+    "Placa": {
+      "type": "string"
+    },
+    "Tipo": {
+      "type": "integer"
+    },
+    "DataAlteracao": {
+      "type": "datetime"
+    },
+    "AlteradoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "DataCriacao": {
+      "type": "datetime"
+    },
+    "CriadoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "Funcionarios": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::funcionario.funcionario"
+    },
+    "Manutencao": {
+      "type": "boolean"
+    }
+  }
+}

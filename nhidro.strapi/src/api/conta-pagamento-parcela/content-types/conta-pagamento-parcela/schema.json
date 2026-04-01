@@ -1,0 +1,49 @@
+{
+  "kind": "collectionType",
+  "collectionName": "conta_pagamento_parcelas",
+  "info": {
+    "singularName": "conta-pagamento-parcela",
+    "pluralName": "conta-pagamento-parcelas",
+    "displayName": "ContaPagamentoParcela",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "NumeroParcela": {
+      "type": "integer"
+    },
+    "ValorParcela": {
+      "type": "decimal"
+    },
+    "DataVencimento": {
+      "type": "date"
+    },
+    "StatusPagamento": {
+      "type": "integer"
+    },
+    "ValorAPagar": {
+      "type": "decimal"
+    },
+    "ValorPago": {
+      "type": "decimal"
+    },
+    "ParcelasPagamento": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::parcela-pagamento.parcela-pagamento",
+      "mappedBy": "Parcela"
+    },
+    "DataVencimentoReal": {
+      "type": "date"
+    },
+    "ValorAcrescimo": {
+      "type": "decimal"
+    },
+    "ValorDecrescimo": {
+      "type": "decimal"
+    }
+  }
+}

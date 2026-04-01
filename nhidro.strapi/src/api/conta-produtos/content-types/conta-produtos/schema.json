@@ -1,0 +1,31 @@
+{
+  "kind": "collectionType",
+  "collectionName": "contas_produtos",
+  "info": {
+    "singularName": "conta-produtos",
+    "pluralName": "contas-produtos",
+    "displayName": "ContaProdutos",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Descricao": {
+      "type": "string"
+    },
+    "ValorUnitario": {
+      "type": "decimal"
+    },
+    "Quantidade": {
+      "type": "decimal"
+    },
+    "ValorTotal": {
+      "type": "decimal"
+    },
+    "CA": {
+      "type": "string"
+    }
+  }
+}

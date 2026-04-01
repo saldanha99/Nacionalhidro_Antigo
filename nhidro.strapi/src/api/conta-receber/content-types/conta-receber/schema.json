@@ -1,0 +1,116 @@
+{
+  "kind": "collectionType",
+  "collectionName": "contas_receber",
+  "info": {
+    "singularName": "conta-receber",
+    "pluralName": "contas-receber",
+    "displayName": "ContaReceber",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Empresa": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa.empresa"
+    },
+    "Cliente": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::cliente.cliente"
+    },
+    "Contato": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::contato.contato"
+    },
+    "Faturamento": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::faturamento.faturamento"
+    },
+    "InsercaoManual": {
+      "type": "boolean"
+    },
+    "Nota": {
+      "type": "string"
+    },
+    "TipoFatura": {
+      "type": "string"
+    },
+    "DataEmissao": {
+      "type": "date"
+    },
+    "ValorTotal": {
+      "type": "decimal"
+    },
+    "Observacoes": {
+      "type": "text"
+    },
+    "CriadoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "Status": {
+      "type": "integer"
+    },
+    "ContaCentrosCustos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::conta-centro-custo.conta-centro-custo"
+    },
+    "ContaNaturezasContabeis": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::conta-natureza-contabil.conta-natureza-contabil"
+    },
+    "ContaRecebimento": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::conta-recebimento.conta-recebimento"
+    },
+    "DataCancelamento": {
+      "type": "datetime"
+    },
+    "MotivoCancelamento": {
+      "type": "text"
+    },
+    "DataEnvio": {
+      "type": "datetime"
+    },
+    "DataVencimento": {
+      "type": "date"
+    },
+    "ValorBruto": {
+      "type": "decimal"
+    },
+    "ValorIcms": {
+      "type": "decimal"
+    },
+    "ValorInss": {
+      "type": "decimal"
+    },
+    "ValorIss": {
+      "type": "decimal"
+    },
+    "ValorPis": {
+      "type": "decimal"
+    },
+    "ValorCofins": {
+      "type": "decimal"
+    },
+    "ValorIr": {
+      "type": "decimal"
+    },
+    "ValorCsll": {
+      "type": "decimal"
+    },
+    "DataRecebimento": {
+      "type": "datetime"
+    }
+  }
+}

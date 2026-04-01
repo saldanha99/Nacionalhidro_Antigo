@@ -1,0 +1,170 @@
+{
+  "kind": "collectionType",
+  "collectionName": "ordem_servicos",
+  "info": {
+    "singularName": "ordem-servico",
+    "pluralName": "ordem-servicos",
+    "displayName": "OrdemServico",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Status": {
+      "type": "integer",
+      "required": true,
+      "default": 4
+    },
+    "Codigo": {
+      "type": "integer"
+    },
+    "Proposta": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::proposta.proposta"
+    },
+    "DataInicial": {
+      "type": "date"
+    },
+    "HoraInicial": {
+      "type": "time"
+    },
+    "ReplicarDias": {
+      "type": "integer"
+    },
+    "QuantidadeDia": {
+      "type": "integer"
+    },
+    "Cliente": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::cliente.cliente"
+    },
+    "Contato": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::contato.contato"
+    },
+    "Observacoes": {
+      "type": "text"
+    },
+    "DataAlteracao": {
+      "type": "datetime"
+    },
+    "AlteradoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "DataCriacao": {
+      "type": "datetime"
+    },
+    "CriadoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "DataCancelamento": {
+      "type": "datetime"
+    },
+    "MotivoCancelamento": {
+      "type": "string"
+    },
+    "DataBaixa": {
+      "type": "datetime"
+    },
+    "Escala": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::escala.escala",
+      "mappedBy": "OrdemServico"
+    },
+    "Numero": {
+      "type": "integer"
+    },
+    "DiasSemana": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::dias-semana.dias-semana"
+    },
+    "NomeArquivo": {
+      "type": "string"
+    },
+    "UrlArquivo": {
+      "type": "string"
+    },
+    "Equipamento": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::equipamento.equipamento"
+    },
+    "HoraEntrada": {
+      "type": "time"
+    },
+    "HoraSaida": {
+      "type": "time"
+    },
+    "HoraPadrao": {
+      "type": "time"
+    },
+    "HoraTolerancia": {
+      "type": "time"
+    },
+    "HoraAlmoco": {
+      "type": "time"
+    },
+    "HoraTotal": {
+      "type": "time"
+    },
+    "HoraAdicional": {
+      "type": "time"
+    },
+    "TipoCobranca": {
+      "type": "integer"
+    },
+    "Servicos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::servico.servico"
+    },
+    "Empresa": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa.empresa"
+    },
+    "Acompanhante": {
+      "type": "string"
+    },
+    "PrecificacaoDesconto": {
+      "type": "decimal"
+    },
+    "PrecificacaoValorExtra": {
+      "type": "decimal"
+    },
+    "PrecificacaoObservacao": {
+      "type": "text"
+    },
+    "PrecificacaoTotalServico": {
+      "type": "decimal"
+    },
+    "PrecificacaoTotalHora": {
+      "type": "decimal"
+    },
+    "PrecificacaoValorTotal": {
+      "type": "decimal"
+    },
+    "StatusPrecificacao": {
+      "type": "integer"
+    },
+    "DataPrecificacao": {
+      "type": "datetime"
+    },
+    "BaixadoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}

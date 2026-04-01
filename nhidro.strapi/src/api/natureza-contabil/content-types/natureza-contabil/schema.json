@@ -1,0 +1,22 @@
+{
+  "kind": "collectionType",
+  "collectionName": "naturezas_contabeis",
+  "info": {
+    "singularName": "natureza-contabil",
+    "pluralName": "naturezas-contabeis",
+    "displayName": "NaturezaContabil",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Descricao": {
+      "type": "string"
+    },
+    "Inativo": {
+      "type": "boolean"
+    }
+  }
+}

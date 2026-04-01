@@ -1,0 +1,171 @@
+{
+  "kind": "collectionType",
+  "collectionName": "clientes",
+  "info": {
+    "singularName": "cliente",
+    "pluralName": "clientes",
+    "displayName": "Cliente",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "DiaBaseQuinzenalInicio": {
+      "type": "integer"
+    },
+    "ClienteCodigo": {
+      "type": "integer"
+    },
+    "AniversarioReajuste": {
+      "type": "date"
+    },
+    "LinkPortal": {
+      "type": "string"
+    },
+    "UsuarioPortal": {
+      "type": "string"
+    },
+    "SenhaPortal": {
+      "type": "string"
+    },
+    "TipoFaturamento": {
+      "type": "integer"
+    },
+    "ResponsavelComercial": {
+      "type": "string"
+    },
+    "DiaBaseQuinzenalFinal": {
+      "type": "integer"
+    },
+    "DiaBaseMensal": {
+      "type": "integer"
+    },
+    "DiaBaseSemanal": {
+      "type": "integer"
+    },
+    "Empresa": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa.empresa"
+    },
+    "CTE": {
+      "type": "boolean",
+      "default": false
+    },
+    "PorcentagemRL": {
+      "type": "decimal"
+    },
+    "DiasVencimento": {
+      "type": "integer"
+    },
+    "TipoPessoa": {
+      "type": "integer"
+    },
+    "Ie": {
+      "type": "string"
+    },
+    "Cnpj": {
+      "type": "string"
+    },
+    "Rg": {
+      "type": "string"
+    },
+    "Endereco": {
+      "type": "string"
+    },
+    "Numero": {
+      "type": "string"
+    },
+    "Complemento": {
+      "type": "string"
+    },
+    "Bairro": {
+      "type": "string"
+    },
+    "Cep": {
+      "type": "string"
+    },
+    "EstadoSigla": {
+      "type": "string"
+    },
+    "Cidade": {
+      "type": "string"
+    },
+    "PontoReferencia": {
+      "type": "string"
+    },
+    "Telefone": {
+      "type": "string"
+    },
+    "Celular": {
+      "type": "string"
+    },
+    "Fax": {
+      "type": "string"
+    },
+    "Email": {
+      "type": "string"
+    },
+    "ObservacaoCobranca": {
+      "type": "string"
+    },
+    "Observacao": {
+      "type": "string"
+    },
+    "NomeFantasia": {
+      "type": "string"
+    },
+    "Cpf": {
+      "type": "string"
+    },
+    "Contatos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::contato.contato"
+    },
+    "Bloqueado": {
+      "type": "boolean",
+      "default": false
+    },
+    "RazaoSocial": {
+      "type": "string"
+    },
+    "DataDesbloqueio": {
+      "type": "date"
+    },
+    "Vendedor": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "Clientes"
+    },
+    "Integracoes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::cliente-integracao.cliente-integracao"
+    },
+    "HistoricosContato": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::historico-contato.historico-contato",
+      "mappedBy": "Cliente"
+    },
+    "Segmento": {
+      "type": "string"
+    },
+    "CodigoMunicipio": {
+      "type": "string"
+    },
+    "InscricaoMunicipal": {
+      "type": "string"
+    },
+    "ClienteDocumentos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::cliente-documento.cliente-documento",
+      "mappedBy": "Cliente"
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "kind": "collectionType",
+  "collectionName": "responsabilidades",
+  "info": {
+    "singularName": "responsabilidade",
+    "pluralName": "responsabilidades",
+    "displayName": "Responsabilidade",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Responsabilidade": {
+      "type": "string"
+    },
+    "Inativo": {
+      "type": "boolean"
+    },
+    "Padrao": {
+      "type": "boolean"
+    },
+    "Responsavel": {
+      "type": "integer"
+    },
+    "Importante": {
+      "type": "boolean"
+    }
+  }
+}

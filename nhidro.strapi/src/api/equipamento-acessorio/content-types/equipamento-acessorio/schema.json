@@ -1,0 +1,20 @@
+{
+  "kind": "collectionType",
+  "collectionName": "equipamento_acessorios",
+  "info": {
+    "singularName": "equipamento-acessorio",
+    "pluralName": "equipamento-acessorios",
+    "displayName": "EquipamentoAcessorio"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Acessorio": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::acessorio.acessorio"
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "kind": "collectionType",
+  "collectionName": "empresas",
+  "info": {
+    "singularName": "empresa",
+    "pluralName": "empresas",
+    "displayName": "Empresa",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Descricao": {
+      "type": "string",
+      "required": true
+    },
+    "CNPJ": {
+      "type": "string",
+      "required": true
+    },
+    "Endereco": {
+      "type": "string"
+    },
+    "Telefone": {
+      "type": "string"
+    },
+    "InscricaoEstadual": {
+      "type": "string"
+    },
+    "DadosDeposito": {
+      "type": "string"
+    },
+    "RegimeTributario": {
+      "type": "integer"
+    },
+    "Logradouro": {
+      "type": "string"
+    },
+    "Numero": {
+      "type": "integer"
+    },
+    "Bairro": {
+      "type": "string"
+    },
+    "UF": {
+      "type": "string"
+    },
+    "CEP": {
+      "type": "string"
+    },
+    "FocusToken": {
+      "type": "string"
+    },
+    "EmpresaBanco": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::empresa-banco.empresa-banco",
+      "mappedBy": "Empresa"
+    },
+    "NaturezaOperacao": {
+      "type": "string"
+    },
+    "InscricaoMunicipal": {
+      "type": "string"
+    },
+    "Municipio": {
+      "type": "string"
+    },
+    "Rntrc": {
+      "type": "string"
+    },
+    "CodigoMunicipio": {
+      "type": "string"
+    },
+    "Cnae": {
+      "type": "string"
+    },
+    "EmpresaDocumentos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::empresa-documento.empresa-documento",
+      "mappedBy": "Empresa"
+    }
+  }
+}

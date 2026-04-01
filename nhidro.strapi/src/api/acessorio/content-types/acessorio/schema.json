@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "collectionName": "acessorios",
+  "info": {
+    "singularName": "acessorio",
+    "pluralName": "acessorios",
+    "displayName": "Acessorio",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Nome": {
+      "type": "string"
+    },
+    "Descricao": {
+      "type": "text"
+    },
+    "Padrao": {
+      "type": "boolean",
+      "required": false
+    },
+    "Inativo": {
+      "type": "boolean"
+    }
+  }
+}

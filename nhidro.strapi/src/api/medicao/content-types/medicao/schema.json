@@ -1,0 +1,118 @@
+{
+  "kind": "collectionType",
+  "collectionName": "medicoes",
+  "info": {
+    "singularName": "medicao",
+    "pluralName": "medicoes",
+    "displayName": "Medicao",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Ordens": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::ordem-servico.ordem-servico"
+    },
+    "Cliente": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::cliente.cliente"
+    },
+    "Contato": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::contato.contato"
+    },
+    "EmailCopia": {
+      "type": "string"
+    },
+    "Cte": {
+      "type": "boolean"
+    },
+    "ValorRL": {
+      "type": "decimal"
+    },
+    "ValorServico": {
+      "type": "decimal"
+    },
+    "ValorCte": {
+      "type": "decimal"
+    },
+    "PorcentagemRL": {
+      "type": "decimal"
+    },
+    "TotalServico": {
+      "type": "decimal"
+    },
+    "TotalHora": {
+      "type": "decimal"
+    },
+    "Adicional": {
+      "type": "decimal"
+    },
+    "Desconto": {
+      "type": "decimal"
+    },
+    "ValorTotal": {
+      "type": "decimal"
+    },
+    "Status": {
+      "type": "integer"
+    },
+    "DataCriacao": {
+      "type": "datetime"
+    },
+    "CriadoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "Codigo": {
+      "type": "integer"
+    },
+    "Revisao": {
+      "type": "integer"
+    },
+    "Empresa": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa.empresa"
+    },
+    "DataAprovacaoInterna": {
+      "type": "datetime"
+    },
+    "DataCobranca": {
+      "type": "datetime"
+    },
+    "MotivoCancelamento": {
+      "type": "string"
+    },
+    "DataCancelamento": {
+      "type": "datetime"
+    },
+    "Observacoes": {
+      "type": "text"
+    },
+    "ValorAprovado": {
+      "type": "decimal"
+    },
+    "DataConferencia": {
+      "type": "datetime"
+    },
+    "DataAprovacao": {
+      "type": "datetime"
+    },
+    "Vendedor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "Solicitante": {
+      "type": "string"
+    }
+  }
+}

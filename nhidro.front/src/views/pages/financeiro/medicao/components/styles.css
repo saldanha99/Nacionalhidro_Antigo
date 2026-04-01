@@ -1,0 +1,3 @@
+.customfilelabel::after {
+    content:"another word" !important;
+}

@@ -1,0 +1,22 @@
+{
+  "kind": "collectionType",
+  "collectionName": "centros_custo",
+  "info": {
+    "singularName": "centro-custo",
+    "pluralName": "centros-custo",
+    "displayName": "CentroCusto",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Descricao": {
+      "type": "string"
+    },
+    "Inativo": {
+      "type": "boolean"
+    }
+  }
+}

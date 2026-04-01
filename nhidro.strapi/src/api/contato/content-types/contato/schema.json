@@ -1,0 +1,34 @@
+{
+  "kind": "collectionType",
+  "collectionName": "contatos",
+  "info": {
+    "singularName": "contato",
+    "pluralName": "contatos",
+    "displayName": "Contato",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Nome": {
+      "type": "string"
+    },
+    "Setor": {
+      "type": "string"
+    },
+    "Email": {
+      "type": "string"
+    },
+    "Telefone": {
+      "type": "string"
+    },
+    "Ramal": {
+      "type": "string"
+    },
+    "Celular": {
+      "type": "string"
+    }
+  }
+}

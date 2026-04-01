@@ -1,0 +1,64 @@
+{
+  "kind": "collectionType",
+  "collectionName": "cliente_complementos",
+  "info": {
+    "singularName": "cliente-complemento",
+    "pluralName": "cliente-complementos",
+    "displayName": "Cliente-Complemento",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "DiaBaseQuinzenalInicio": {
+      "type": "integer"
+    },
+    "ClienteCodigo": {
+      "type": "integer"
+    },
+    "AniversarioReajuste": {
+      "type": "date"
+    },
+    "LinkPortal": {
+      "type": "string"
+    },
+    "UsuarioPortal": {
+      "type": "string"
+    },
+    "SenhaPortal": {
+      "type": "string"
+    },
+    "TipoFaturamento": {
+      "type": "integer"
+    },
+    "ResponsavelComercial": {
+      "type": "string"
+    },
+    "DiaBaseQuinzenalFinal": {
+      "type": "integer"
+    },
+    "DiaBaseMensal": {
+      "type": "integer"
+    },
+    "DiaBaseSemanal": {
+      "type": "integer"
+    },
+    "Empresa": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa.empresa"
+    },
+    "CTE": {
+      "type": "boolean",
+      "default": false
+    },
+    "PorcentagemRL": {
+      "type": "decimal"
+    },
+    "DiasVencimento": {
+      "type": "integer"
+    }
+  }
+}

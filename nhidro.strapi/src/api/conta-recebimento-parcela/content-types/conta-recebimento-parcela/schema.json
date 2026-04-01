@@ -1,0 +1,48 @@
+{
+  "kind": "collectionType",
+  "collectionName": "conta_recebimento_parcelas",
+  "info": {
+    "singularName": "conta-recebimento-parcela",
+    "pluralName": "conta-recebimento-parcelas",
+    "displayName": "ContaRecebimentoParcela"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "NumeroParcela": {
+      "type": "integer"
+    },
+    "ValorParcela": {
+      "type": "decimal"
+    },
+    "DataVencimento": {
+      "type": "date"
+    },
+    "StatusRecebimento": {
+      "type": "integer"
+    },
+    "ValorAReceber": {
+      "type": "decimal"
+    },
+    "ValorRecebido": {
+      "type": "decimal"
+    },
+    "DataVencimentoReal": {
+      "type": "date"
+    },
+    "ValorAcrescimo": {
+      "type": "decimal"
+    },
+    "ValorDecrescimo": {
+      "type": "decimal"
+    },
+    "ParcelasRecebimento": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::parcela-recebimento.parcela-recebimento",
+      "mappedBy": "Parcela"
+    }
+  }
+}

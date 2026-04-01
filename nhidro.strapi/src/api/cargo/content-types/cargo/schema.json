@@ -1,0 +1,25 @@
+{
+  "kind": "collectionType",
+  "collectionName": "cargos",
+  "info": {
+    "singularName": "cargo",
+    "pluralName": "cargos",
+    "displayName": "Cargo",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Descricao": {
+      "type": "string"
+    },
+    "UnicoEquipamento": {
+      "type": "boolean"
+    },
+    "Ativo": {
+      "type": "boolean"
+    }
+  }
+}

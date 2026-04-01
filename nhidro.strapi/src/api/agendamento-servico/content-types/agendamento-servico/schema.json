@@ -1,0 +1,54 @@
+{
+  "kind": "collectionType",
+  "collectionName": "agendamento_servicos",
+  "info": {
+    "singularName": "agendamento-servico",
+    "pluralName": "agendamento-servicos",
+    "displayName": "AgendamentoServico",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Data": {
+      "type": "date"
+    },
+    "Hora": {
+      "type": "time"
+    },
+    "Cliente": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::cliente.cliente"
+    },
+    "Equipamento": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::equipamento.equipamento"
+    },
+    "Veiculo": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::veiculo.veiculo"
+    },
+    "Status": {
+      "type": "integer"
+    },
+    "Escala": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::escala.escala",
+      "inversedBy": "AgendamentoServicos"
+    },
+    "Proposta": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::proposta.proposta"
+    },
+    "Observacoes": {
+      "type": "text"
+    }
+  }
+}

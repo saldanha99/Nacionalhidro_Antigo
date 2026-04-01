@@ -1,0 +1,23 @@
+{
+  "kind": "collectionType",
+  "collectionName": "proposta_responsabilidades",
+  "info": {
+    "singularName": "proposta-responsabilidade",
+    "pluralName": "proposta-responsabilidades",
+    "displayName": "PropostaResponsabilidade"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Responsabilidade": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::responsabilidade.responsabilidade"
+    },
+    "Responsavel": {
+      "type": "integer"
+    }
+  }
+}

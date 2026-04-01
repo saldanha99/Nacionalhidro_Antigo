@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  db-legacy:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD:-nhidropassword}
+      MYSQL_DATABASE: ${DATABASE_NAME:-nhidro}
+      MYSQL_USER: ${DATABASE_USERNAME:-nhidro}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-nhidropassword}
+    volumes:
+      - nhidro-legacy-db-data:/var/lib/mysql
+    networks:
+      - internal
+
+  strapi-legacy:
+    image: nacionalhidro-legacy-backend:latest # Build this on the VPS first
+    restart: always
+    environment:
+      DATABASE_HOST: db-legacy
+      DATABASE_PORT: 3306
+      DATABASE_NAME: ${DATABASE_NAME:-nhidro}
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-nhidro}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-nhidropassword}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET:-your_admin_jwt_secret}
+      API_TOKEN_SALT: ${API_TOKEN_SALT:-your_api_token_salt}
+      TRANSFER_TOKEN_SALT: ${TRANSFER_TOKEN_SALT:-your_transfer_token_salt}
+      NODE_ENV: production
+      URL: https://${API_SUBDOMAIN:-api-legacy.nacionalhidro.com.br}
+    networks:
+      - internal
+      - traefik-public # Or "proxy", based on your Traefik setup
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.nh-legacy-api.rule=Host(`${API_SUBDOMAIN:-api-legacy.nacionalhidro.com.br}`)"
+        - "traefik.http.routers.nh-legacy-api.entrypoints=websecure"
+        - "traefik.http.routers.nh-legacy-api.tls.certresolver=le" # Matches Hostinger/Traefik cert resolver
+        - "traefik.http.services.nh-legacy-api.loadbalancer.server.port=1337"
+
+  front-legacy:
+    image: nacionalhidro-legacy-frontend:latest # Build this on the VPS first
+    restart: always
+    environment:
+      REACT_APP_BACKEND_URL: https://${API_SUBDOMAIN:-api-legacy.nacionalhidro.com.br}/
+      REACT_APP_JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
+    networks:
+      - traefik-public
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.nh-legacy-front.rule=Host(`${FRONT_SUBDOMAIN:-legacy.nacionalhidro.com.br}`)"
+        - "traefik.http.routers.nh-legacy-front.entrypoints=websecure"
+        - "traefik.http.routers.nh-legacy-front.tls.certresolver=le"
+        - "traefik.http.services.nh-legacy-front.loadbalancer.server.port=80"
+
+volumes:
+  nhidro-legacy-db-data:
+
+networks:
+  internal:
+  traefik-public:
+    external: true

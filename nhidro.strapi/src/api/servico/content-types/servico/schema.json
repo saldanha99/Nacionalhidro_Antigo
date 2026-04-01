@@ -1,0 +1,45 @@
+{
+  "kind": "collectionType",
+  "collectionName": "servicos",
+  "info": {
+    "singularName": "servico",
+    "pluralName": "servicos",
+    "displayName": "Servico",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Discriminacao": {
+      "type": "string"
+    },
+    "TipoPrecificacao": {
+      "type": "integer"
+    },
+    "ValorUnitario": {
+      "type": "decimal"
+    },
+    "Quantidade": {
+      "type": "decimal"
+    },
+    "ValorHora": {
+      "type": "decimal"
+    },
+    "ServicosHorasAdicionais": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::servico-hora-adicional.servico-hora-adicional"
+    },
+    "ValorExtraHora": {
+      "type": "decimal"
+    },
+    "ValorTotal": {
+      "type": "decimal"
+    },
+    "ObservacaoCobranca": {
+      "type": "string"
+    }
+  }
+}

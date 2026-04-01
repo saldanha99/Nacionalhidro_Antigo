@@ -1,0 +1,17 @@
+{
+    "getAllOrdemServico" : "SELECT TOP(5) * FROM [dbo].[Ordem] WHERE Status = 2",
+    "getAllOrdemServicoEquipamento" : "select * from OrdemServicoEquipamento",
+    "getOrdemServicoByCliente": "select Ordem.Codigo, Ordem.CodigoInterno, Cliente.RazaoSocial, Ordem.DataProposta, Ordem.HoraInicial, SUM(Ordem.TotalServico) as TotalServico, SUM(Ordem.Total) as Total, Contato.Nome from Ordem INNER JOIN Cliente ON Ordem.ClienteCodigo = Cliente.Codigo INNER JOIN Contato ON Ordem.ContatoCodigo = Contato.Codigo WHERE Ordem.Status = 3 AND Ordem.ClienteCodigo = {ClienteCodigo} AND Ordem.DataProposta BETWEEN '{DataInicio}' AND '{DataFim}' GROUP BY Cliente.Codigo, Cliente.RazaoSocial, Contato.Nome, Ordem.DataProposta, Ordem.HoraInicial, Ordem.CodigoInterno, Ordem.Codigo",
+    "findAllOrdemServicoEquipamentoByOrdemCodigo": "select OrdemServicoEquipamento.Codigo, OrdemServicoEquipamento.Descricao from OrdemServicoEquipamento WHERE  OrdemServicoEquipamento.OrdemCodigo =",
+    "getListaOrdemServicoStatusABaixar" : "select Ordem.Codigo, Ordem.CodigoInterno, Ordem.DataCadastro, Ordem.HoraInicial, Cliente.RazaoSocial from Ordem INNER JOIN Cliente ON Cliente.Codigo = Ordem.ClienteCodigo WHERE Ordem.Status= 1",
+    "getListaOrdemServicoStatusCancelado" : "select Ordem.Codigo ,Ordem.CodigoInterno, Ordem.DataCadastro, Ordem.HoraInicial, Cliente.RazaoSocial from Ordem INNER JOIN Cliente ON Cliente.Codigo = Ordem.ClienteCodigo WHERE Ordem.Status= 2",
+    "getListaOrdemServicoStatusACobrar" : "SELECT Ordem.Codigo AS CodigoOS, Ordem.CodigoInterno, Cliente.Codigo, SUM(Ordem.TotalServico) as TotalServico, SUM(Ordem.Total) as Total, SUM(Ordem.TotalHora) as TotalHora,Cliente.RazaoSocial, Ordem.DataProposta FROM Ordem INNER JOIN Cliente ON Ordem.ClienteCodigo = Cliente.Codigo  WHERE Ordem.Status = 3 AND Ordem.ClienteCodigo = {ClienteCodigo} AND Ordem.DataProposta > '2020-01-01' GROUP BY Cliente.Codigo, Cliente.RazaoSocial, Ordem.DataProposta, Ordem.CodigoInterno, Ordem.Codigo",
+    "getQuantidadeOrdemServicoStatusABaixar" : "SELECT  COUNT(Codigo) as Quantidade from Ordem WHERE Status = 1",
+    "getQuantidadeOrdemServicoStatusACobrar" : "SELECT  COUNT(Codigo) as Quantidade from Ordem WHERE Status = 3",
+    "getQuantidadeOrdemServicoStatusCancelado" : "SELECT  COUNT(Codigo) as Quantidade from Ordem WHERE Status = 2",
+    "getAllClientes" : "SELECT Cliente.*, Estado.Sigla as EstadoSigla FROM Cliente INNER JOIN Estado ON Estado.Codigo = Cliente.EstadoCodigo Order By  RazaoSocial Desc",
+    "getClienteById" : "SELECT Cliente.*, Estado.Sigla as EstadoSigla FROM Cliente INNER JOIN Estado ON Estado.Codigo = Cliente.EstadoCodigo WHERE Cliente.Codigo = {ClienteCodigo} Order By  RazaoSocial Desc",
+    "getAllDepartamento" : "SELECT TOP(5) * FROM [dbo].[Departamento]",
+    "updateDepartamentoQuery" : "UPDATE Departamento SET EmpresaCodigo = '{EmpresaCodigo}', Departamento = '{Departamento}' WHERE Codigo = '{Codigo}'",
+    "createDepartamentoQuery": "INSERT INTO Departamento (EmpresaCodigo, Departamento) VALUES ('{EmpresaCodigo}', '{Departamento}');"
+}

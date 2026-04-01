@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "collectionName": "proposta_equipes",
+  "info": {
+    "singularName": "proposta-equipe",
+    "pluralName": "proposta-equipes",
+    "displayName": "PropostaEquipe",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Cargo": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::cargo.cargo"
+    },
+    "Quantidade": {
+      "type": "integer"
+    },
+    "Equipamento": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::equipamento.equipamento"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "contas_centros_custos",
+  "info": {
+    "singularName": "conta-centro-custo",
+    "pluralName": "contas-centros-custos",
+    "displayName": "ContaCentroCusto",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Valor": {
+      "type": "decimal"
+    },
+    "CentroCusto": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::centro-custo.centro-custo"
+    }
+  }
+}

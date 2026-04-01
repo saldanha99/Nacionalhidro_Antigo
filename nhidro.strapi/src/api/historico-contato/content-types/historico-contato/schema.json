@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "historico_contatoes",
+  "info": {
+    "singularName": "historico-contato",
+    "pluralName": "historico-contatoes",
+    "displayName": "HistoricoContato",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Vendedor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "Cliente": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::cliente.cliente",
+      "inversedBy": "HistoricosContato"
+    },
+    "Contato": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::contato.contato"
+    },
+    "DataContato": {
+      "type": "date"
+    },
+    "DataAgendado": {
+      "type": "date"
+    },
+    "Observacoes": {
+      "type": "text"
+    },
+    "Status": {
+      "type": "string"
+    },
+    "DescricaoCliente": {
+      "type": "string"
+    }
+  }
+}

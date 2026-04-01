@@ -1,0 +1,18 @@
+{
+  "kind": "collectionType",
+  "collectionName": "calendarios",
+  "info": {
+    "singularName": "calendario",
+    "pluralName": "calendarios",
+    "displayName": "Calendario"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Data": {
+      "type": "date"
+    }
+  }
+}

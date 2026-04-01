@@ -1,0 +1,75 @@
+{
+  "kind": "collectionType",
+  "collectionName": "contas",
+  "info": {
+    "singularName": "conta",
+    "pluralName": "contas",
+    "displayName": "Conta",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Fornecedor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::fornecedor.fornecedor"
+    },
+    "ContaProdutos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::conta-produtos.conta-produtos"
+    },
+    "ContaPagamento": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::conta-pagamento.conta-pagamento"
+    },
+    "Status": {
+      "type": "integer"
+    },
+    "Empresa": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa.empresa"
+    },
+    "ValorTotal": {
+      "type": "decimal"
+    },
+    "ContaNaturezasContabeis": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::conta-natureza-contabil.conta-natureza-contabil"
+    },
+    "ContaCentrosCustos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::conta-centro-custo.conta-centro-custo"
+    },
+    "NumeroNF": {
+      "type": "string",
+      "unique": false
+    },
+    "DataEmissaoNF": {
+      "type": "date"
+    },
+    "Observacoes": {
+      "type": "text"
+    },
+    "MotivoCancelamento": {
+      "type": "string"
+    },
+    "UsuarioLancamento": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "Cliente": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::cliente.cliente"
+    }
+  }
+}

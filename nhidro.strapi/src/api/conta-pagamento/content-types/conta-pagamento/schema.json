@@ -1,0 +1,27 @@
+{
+  "kind": "collectionType",
+  "collectionName": "conta_pagamentos",
+  "info": {
+    "singularName": "conta-pagamento",
+    "pluralName": "conta-pagamentos",
+    "displayName": "ContaPagamento",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "QuantidadeParcela": {
+      "type": "integer"
+    },
+    "ValorParcela": {
+      "type": "decimal"
+    },
+    "ContaPagamentoParcela": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::conta-pagamento-parcela.conta-pagamento-parcela"
+    }
+  }
+}

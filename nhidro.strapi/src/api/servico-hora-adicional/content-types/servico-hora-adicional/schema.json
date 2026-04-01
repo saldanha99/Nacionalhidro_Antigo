@@ -1,0 +1,31 @@
+{
+  "kind": "collectionType",
+  "collectionName": "servico_hora_adicionals",
+  "info": {
+    "singularName": "servico-hora-adicional",
+    "pluralName": "servico-hora-adicionals",
+    "displayName": "ServicoHoraAdicional",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "TipoHoraAdicional": {
+      "type": "integer"
+    },
+    "QuantidadeHorasAdicionais": {
+      "type": "integer"
+    },
+    "PorcentagemValor": {
+      "type": "decimal"
+    },
+    "ValorTotal": {
+      "type": "decimal"
+    },
+    "Horas": {
+      "type": "time"
+    }
+  }
+}

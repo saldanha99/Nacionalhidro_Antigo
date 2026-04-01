@@ -1,0 +1,27 @@
+{
+  "kind": "collectionType",
+  "collectionName": "conta_recebimentos",
+  "info": {
+    "singularName": "conta-recebimento",
+    "pluralName": "conta-recebimentos",
+    "displayName": "ContaRecebimento",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "QuantidadeParcela": {
+      "type": "integer"
+    },
+    "ValorParcela": {
+      "type": "decimal"
+    },
+    "ContaRecebimentoParcela": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::conta-recebimento-parcela.conta-recebimento-parcela"
+    }
+  }
+}

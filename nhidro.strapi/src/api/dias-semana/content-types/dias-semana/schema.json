@@ -1,0 +1,22 @@
+{
+  "kind": "collectionType",
+  "collectionName": "dias_semanas",
+  "info": {
+    "singularName": "dias-semana",
+    "pluralName": "dias-semanas",
+    "displayName": "DiasSemana",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "label": {
+      "type": "string"
+    },
+    "value": {
+      "type": "integer"
+    }
+  }
+}

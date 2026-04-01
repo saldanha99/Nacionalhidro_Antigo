@@ -1,0 +1,34 @@
+{
+  "kind": "collectionType",
+  "collectionName": "cliente_documentos",
+  "info": {
+    "singularName": "cliente-documento",
+    "pluralName": "cliente-documentos",
+    "displayName": "ClienteDocumento",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Descricao": {
+      "type": "string"
+    },
+    "Cliente": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::cliente.cliente",
+      "inversedBy": "ClienteDocumentos"
+    },
+    "UrlArquivo": {
+      "type": "string"
+    },
+    "Deletado": {
+      "type": "boolean"
+    },
+    "MotivoExclusao": {
+      "type": "string"
+    }
+  }
+}

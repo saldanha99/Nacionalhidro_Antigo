@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  nhidro-db:
+    image: mysql:8.0
+    container_name: nhidro-db
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
+      MYSQL_DATABASE: ${DATABASE_NAME}
+      MYSQL_USER: ${DATABASE_USERNAME}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - nhidro-db-data:/var/lib/mysql
+      # Uncomment the following line to auto-seed the database if you put the .sql file in ./init/
+      # - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  nhidro-strapi:
+    build:
+      context: ./nhidro.strapi
+      dockerfile: Dockerfile
+    container_name: nhidro-strapi
+    restart: always
+    environment:
+      DATABASE_HOST: nhidro-db
+      DATABASE_PORT: 3306
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      API_TOKEN_SALT: ${API_TOKEN_SALT}
+      TRANSFER_TOKEN_SALT: ${TRANSFER_TOKEN_SALT}
+      NODE_ENV: production
+    ports:
+      - "1337:1337"
+    depends_on:
+      nhidro-db:
+        condition: service_healthy
+
+volumes:
+  nhidro-db-data:

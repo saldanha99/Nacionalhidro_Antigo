@@ -1,0 +1,97 @@
+{
+  "kind": "collectionType",
+  "collectionName": "escalas",
+  "info": {
+    "singularName": "escala",
+    "pluralName": "escalas",
+    "displayName": "Escala",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Equipamento": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::equipamento.equipamento"
+    },
+    "Cliente": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::cliente.cliente"
+    },
+    "Funcionarios": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::funcionario.funcionario"
+    },
+    "Veiculos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::veiculo.veiculo"
+    },
+    "Data": {
+      "type": "date"
+    },
+    "Hora": {
+      "type": "time"
+    },
+    "Observacoes": {
+      "type": "text"
+    },
+    "DataAlteracao": {
+      "type": "datetime"
+    },
+    "AlteradoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "DataCriacao": {
+      "type": "datetime"
+    },
+    "CriadoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "Status": {
+      "type": "integer"
+    },
+    "OrdemServico": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::ordem-servico.ordem-servico",
+      "inversedBy": "Escala"
+    },
+    "AgendamentoServicos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::agendamento-servico.agendamento-servico",
+      "mappedBy": "Escala"
+    },
+    "MotivoCancelamento": {
+      "type": "text"
+    },
+    "DataCancelamento": {
+      "type": "date"
+    },
+    "Empresa": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa.empresa"
+    },
+    "EscalaFuncionarios": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::escala-funcionario.escala-funcionario"
+    },
+    "EscalaVeiculos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::escala-veiculo.escala-veiculo"
+    }
+  }
+}

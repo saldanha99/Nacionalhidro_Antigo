@@ -1,0 +1,26 @@
+{
+  "kind": "collectionType",
+  "collectionName": "cliente_integracoes",
+  "info": {
+    "singularName": "cliente-integracao",
+    "pluralName": "cliente-integracoes",
+    "displayName": "ClienteIntegracao"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Funcionario": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::funcionario.funcionario"
+    },
+    "ValidadeIntegracao": {
+      "type": "date"
+    },
+    "ValidadeAso": {
+      "type": "date"
+    }
+  }
+}

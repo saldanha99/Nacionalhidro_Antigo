@@ -1,0 +1,151 @@
+{
+  "kind": "collectionType",
+  "collectionName": "propostas",
+  "info": {
+    "singularName": "proposta",
+    "pluralName": "propostas",
+    "displayName": "Proposta",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Revisao": {
+      "type": "integer"
+    },
+    "DataProposta": {
+      "type": "date"
+    },
+    "Introducao": {
+      "type": "text"
+    },
+    "Objetivo": {
+      "type": "text"
+    },
+    "DescricaoValores": {
+      "type": "text"
+    },
+    "CondicaoPagamento": {
+      "type": "text"
+    },
+    "PorcentagemRL": {
+      "type": "decimal"
+    },
+    "DataValidade": {
+      "type": "date"
+    },
+    "Status": {
+      "type": "integer"
+    },
+    "Acessorios": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::acessorio.acessorio"
+    },
+    "Cliente": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::cliente.cliente"
+    },
+    "Contato": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::contato.contato"
+    },
+    "PropostaEquipes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::proposta-equipe.proposta-equipe"
+    },
+    "PropostaResponsabilidades": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::proposta-responsabilidade.proposta-responsabilidade"
+    },
+    "PropostaEquipamentos": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::proposta-equipamento.proposta-equipamento"
+    },
+    "Valor": {
+      "type": "decimal"
+    },
+    "Enviada": {
+      "type": "boolean",
+      "default": false
+    },
+    "Codigo": {
+      "type": "integer"
+    },
+    "MotivoCancelamento": {
+      "type": "string"
+    },
+    "DataStatus": {
+      "type": "date"
+    },
+    "DataCancelamento": {
+      "type": "date"
+    },
+    "DescricaoGarantia": {
+      "type": "text"
+    },
+    "DescricaoValoresAux": {
+      "type": "text"
+    },
+    "Usuario": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "MotivoReprovacao": {
+      "type": "string"
+    },
+    "EmailCopia": {
+      "type": "string"
+    },
+    "Cte": {
+      "type": "boolean"
+    },
+    "PagamentoAntecipado": {
+      "type": "boolean"
+    },
+    "AlteradoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "DataAlteracao": {
+      "type": "datetime"
+    },
+    "CriadoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "DataCriacao": {
+      "type": "datetime"
+    },
+    "Empresa": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa.empresa"
+    },
+    "ValidadeProposta": {
+      "type": "text"
+    },
+    "UrlArquivo": {
+      "type": "string"
+    },
+    "NomeArquivo": {
+      "type": "string"
+    },
+    "NaoEnviarEmail": {
+      "type": "boolean"
+    },
+    "Inativa": {
+      "type": "boolean"
+    }
+  }
+}

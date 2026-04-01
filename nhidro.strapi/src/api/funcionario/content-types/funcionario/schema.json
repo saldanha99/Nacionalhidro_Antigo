@@ -1,0 +1,67 @@
+{
+  "kind": "collectionType",
+  "collectionName": "funcionarios",
+  "info": {
+    "singularName": "funcionario",
+    "pluralName": "funcionarios",
+    "displayName": "Funcionario",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Nome": {
+      "type": "string"
+    },
+    "Cargo": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::cargo.cargo"
+    },
+    "DataAlteracao": {
+      "type": "datetime"
+    },
+    "AlteradoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "DataCriacao": {
+      "type": "datetime"
+    },
+    "CriadoPor": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "MotivoAfastamento": {
+      "type": "integer"
+    },
+    "InicioAfastamento": {
+      "type": "date"
+    },
+    "FimAfastamento": {
+      "type": "date"
+    },
+    "DocumentosPessoais": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::documento.documento"
+    },
+    "DocumentosIntegracoes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::documento.documento"
+    },
+    "DocumentosSeguranca": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::documento.documento"
+    },
+    "Bloqueado": {
+      "type": "boolean"
+    }
+  }
+}

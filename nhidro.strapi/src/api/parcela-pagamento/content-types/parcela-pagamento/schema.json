@@ -1,0 +1,66 @@
+{
+  "kind": "collectionType",
+  "collectionName": "parcela_pagamentos",
+  "info": {
+    "singularName": "parcela-pagamento",
+    "pluralName": "parcela-pagamentos",
+    "displayName": "ParcelaPagamento",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "EmpresaBanco": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::empresa-banco.empresa-banco"
+    },
+    "Parcela": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::conta-pagamento-parcela.conta-pagamento-parcela",
+      "inversedBy": "ParcelasPagamento"
+    },
+    "DataPagamento": {
+      "type": "datetime"
+    },
+    "FormaPagamento": {
+      "type": "integer"
+    },
+    "ChavePix": {
+      "type": "string"
+    },
+    "CodigoBarras": {
+      "type": "string"
+    },
+    "AgenciaBanco": {
+      "type": "string"
+    },
+    "ContaBanco": {
+      "type": "string"
+    },
+    "Banco": {
+      "type": "string"
+    },
+    "TipoPix": {
+      "type": "string"
+    },
+    "NumeroCheque": {
+      "type": "string"
+    },
+    "Valor": {
+      "type": "decimal"
+    },
+    "Observacao": {
+      "type": "string"
+    },
+    "UrlCheque": {
+      "type": "string"
+    },
+    "UsuarioBaixa": {
+      "type": "string"
+    }
+  }
+}
