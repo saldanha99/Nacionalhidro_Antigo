@@ -12,6 +12,9 @@ COPY . .
 ENV NODE_ENV=production
 RUN npm run build
 
+# Create uploads folder (required by local provider even if using Azure/AWS later)
+RUN mkdir -p public/uploads
+
 EXPOSE 1337
 
 # Run the Strapi process directly (avoiding PM2 inside Docker)
