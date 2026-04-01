@@ -34,7 +34,19 @@ async function base64Encode(url) {
 }
 
 async function imageBase64() {
-  return '<img width="100%" style="margin-bottom: 1%" src="data:image/png;base64,' + await base64Encode('https://prodnhidro.blob.core.windows.net/storage/proposta.png') + '"/>';
+  try {
+    return '<img width="100%" style="margin-bottom: 1%" src="data:image/png;base64,' + await base64Encode('https://prodnhidro.blob.core.windows.net/storage/proposta.png') + '"/>';
+  } catch (error) {
+    console.warn("Não foi possível baixar imagem de cabeçalho da Azure. Usando fallback local.");
+    try {
+      const localPath = path.resolve("./public/uploads/proposta.png");
+      if (fs.existsSync(localPath)) {
+        const data = fs.readFileSync(localPath);
+        return '<img width="100%" style="margin-bottom: 1%" src="data:image/png;base64,' + data.toString('base64') + '"/>';
+      }
+    } catch (e) { /* ignore */ }
+    return '';
+  }
 }
 
 const groupBy = (list, coluna1) => {
