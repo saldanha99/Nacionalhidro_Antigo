@@ -114,8 +114,8 @@ module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
 
       return propostaCompleta;
     } catch (error) {
-      // Reverter caso haja falha
-      await strapi.entityService.delete("api::proposta.proposta", entry.id);
+      // Registrar o erro, mas manter a proposta básica no banco
+      console.error("Erro ao enriquecer dados ou gerar PDF da proposta:", error);
       throw error;
     }
   },

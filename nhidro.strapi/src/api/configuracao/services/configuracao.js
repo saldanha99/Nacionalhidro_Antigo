@@ -13,6 +13,10 @@ module.exports = createCoreService(
   ({ strapi }) => ({
     upload: async (file, name, type) => {
       let azureInfo = strapi.config.get("server.azure", {});
+      if (!azureInfo || !azureInfo.connectionSrtring) {
+        console.warn("Azure Storage Connection String not found. Skipping upload.");
+        return null;
+      }
       const blobServiceClient = BlobServiceClient.fromConnectionString(
         azureInfo.connectionSrtring
       );
@@ -57,7 +61,11 @@ module.exports = createCoreService(
     },
     getFile: async (fileName) => {
       let azureInfo = strapi.config.get("server.azure", {});
-      let connStr = azureInfo.connectionSrtring;
+      let connStr = azureInfo ? azureInfo.connectionSrtring : null;
+      if (!connStr) {
+          console.error("Azure Storage Connection String not found. Cannot get file.");
+          return null;
+      }
       let defaultContainer = azureInfo.containerName;
       console.log(fileName);
       console.log(connStr);
