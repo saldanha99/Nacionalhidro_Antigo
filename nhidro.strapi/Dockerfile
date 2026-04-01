@@ -1,23 +1,21 @@
-FROM strapi/base
+FROM node:16-bullseye
 
-ENV NODE_VERSION=16.5.0
 ENV NODE_ENV=production
 ENV PORT=1337
 
 # Create app directory
-RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
-COPY package.json /usr/src/app/
-COPY package-lock.json /usr/src/app/
-#COPY ./.env.test /usr/src/app/
+COPY package.json ./
+# Exclude package-lock if it's causing issues, or use npm install directly
+RUN npm install --legacy-peer-deps
 
-RUN npm install
+COPY . .
 
-COPY . /usr/src/app
-
+# Build the Strapi admin panel
 RUN npm run build
 
 EXPOSE 1337
 
-CMD ["npm", "start"]
+# Run the Strapi process directly (avoiding PM2 inside Docker)
+CMD ["npm", "run", "start-prod"]
