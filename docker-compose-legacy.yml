@@ -32,7 +32,7 @@ services:
       URL: https://${API_SUBDOMAIN:-apivps.nacionalhidro.com.br}
     networks:
       - internal
-      - traefik-public # Or "proxy", based on your Traefik setup
+      - hidro
     deploy:
       labels:
         - "traefik.enable=true"
@@ -48,7 +48,7 @@ services:
       REACT_APP_BACKEND_URL: https://${API_SUBDOMAIN:-apivps.nacionalhidro.com.br}/
       REACT_APP_JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
     networks:
-      - traefik-public
+      - hidro
     deploy:
       labels:
         - "traefik.enable=true"
@@ -62,5 +62,5 @@ volumes:
 
 networks:
   internal:
-  traefik-public:
+  hidro:
     external: true
