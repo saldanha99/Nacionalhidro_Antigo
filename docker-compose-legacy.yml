@@ -40,6 +40,7 @@ services:
         - "traefik.http.routers.nh-legacy-api.entrypoints=websecure"
         - "traefik.http.routers.nh-legacy-api.tls.certresolver=le" # Matches Hostinger/Traefik cert resolver
         - "traefik.http.services.nh-legacy-api.loadbalancer.server.port=1337"
+        - "traefik.docker.network=hidro"
 
   front-legacy:
     image: nacionalhidro-legacy-frontend:latest # Build this on the VPS first
