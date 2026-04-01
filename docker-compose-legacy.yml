@@ -24,10 +24,11 @@ services:
       DATABASE_NAME: ${DATABASE_NAME:-nhidro}
       DATABASE_USERNAME: ${DATABASE_USERNAME:-nhidro}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-nhidropassword}
-      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
-      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET:-your_admin_jwt_secret}
-      API_TOKEN_SALT: ${API_TOKEN_SALT:-your_api_token_salt}
-      TRANSFER_TOKEN_SALT: ${TRANSFER_TOKEN_SALT:-your_transfer_token_salt}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_must_be_long_enough_for_strapi}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET:-your_admin_jwt_secret_must_be_long_enough}
+      API_TOKEN_SALT: ${API_TOKEN_SALT:-your_api_token_salt_must_be_long_enough}
+      TRANSFER_TOKEN_SALT: ${TRANSFER_TOKEN_SALT:-your_transfer_token_salt_must_be_long_enoug}
+      APP_KEYS: ${APP_KEYS:-key1,key2,key3,key4}
       NODE_ENV: production
       URL: https://${API_SUBDOMAIN:-apivps.nacionalhidro.com.br}
     networks:
