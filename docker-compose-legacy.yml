@@ -29,14 +29,14 @@ services:
       API_TOKEN_SALT: ${API_TOKEN_SALT:-your_api_token_salt}
       TRANSFER_TOKEN_SALT: ${TRANSFER_TOKEN_SALT:-your_transfer_token_salt}
       NODE_ENV: production
-      URL: https://${API_SUBDOMAIN:-api-legacy.nacionalhidro.com.br}
+      URL: https://${API_SUBDOMAIN:-apivps.nacionalhidro.com.br}
     networks:
       - internal
       - traefik-public # Or "proxy", based on your Traefik setup
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.nh-legacy-api.rule=Host(`${API_SUBDOMAIN:-api-legacy.nacionalhidro.com.br}`)"
+        - "traefik.http.routers.nh-legacy-api.rule=Host(`${API_SUBDOMAIN:-apivps.nacionalhidro.com.br}`)"
         - "traefik.http.routers.nh-legacy-api.entrypoints=websecure"
         - "traefik.http.routers.nh-legacy-api.tls.certresolver=le" # Matches Hostinger/Traefik cert resolver
         - "traefik.http.services.nh-legacy-api.loadbalancer.server.port=1337"
@@ -45,14 +45,14 @@ services:
     image: nacionalhidro-legacy-frontend:latest # Build this on the VPS first
     restart: always
     environment:
-      REACT_APP_BACKEND_URL: https://${API_SUBDOMAIN:-api-legacy.nacionalhidro.com.br}/
+      REACT_APP_BACKEND_URL: https://${API_SUBDOMAIN:-apivps.nacionalhidro.com.br}/
       REACT_APP_JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
     networks:
       - traefik-public
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.nh-legacy-front.rule=Host(`${FRONT_SUBDOMAIN:-legacy.nacionalhidro.com.br}`)"
+        - "traefik.http.routers.nh-legacy-front.rule=Host(`${FRONT_SUBDOMAIN:-vps.nacionalhidro.com.br}`)"
         - "traefik.http.routers.nh-legacy-front.entrypoints=websecure"
         - "traefik.http.routers.nh-legacy-front.tls.certresolver=le"
         - "traefik.http.services.nh-legacy-front.loadbalancer.server.port=80"
