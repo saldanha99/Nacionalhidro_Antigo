@@ -34,6 +34,8 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-Sistema Nacional Hidro <sistema@nacionalhidro.com.br>}
       NODE_ENV: production
       URL: https://${API_SUBDOMAIN:-apivps.nacionalhidro.com.br}
+    volumes:
+      - strapi-uploads:/usr/src/app/public/uploads
     networks:
       - internal
       - hidro
@@ -64,6 +66,7 @@ services:
 
 volumes:
   nhidro-legacy-db-data:
+  strapi-uploads:
 
 networks:
   internal:

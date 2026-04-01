@@ -3,7 +3,7 @@ const cronTasks = require("./cron-tasks");
 module.exports = ({ env }) => ({
   host: env('HOST', '0.0.0.0'),
   port: env.int('PORT', 1337),
-  url : 'https://nhidroapi.akasites.com',
+  url: env('URL', 'https://apivps.nacionalhidro.com.br'),
   cron: {
     enabled: true,
     tasks: cronTasks,

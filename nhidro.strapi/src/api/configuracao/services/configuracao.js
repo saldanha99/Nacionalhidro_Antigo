@@ -1,6 +1,8 @@
 "use strict";
 const { BlobServiceClient } = require("@azure/storage-blob");
 const email = require("../../../services/email/index");
+const fs = require("fs");
+const path = require("path");
 
 /**
  * configuracao service.
@@ -14,9 +16,20 @@ module.exports = createCoreService(
     upload: async (file, name, type) => {
       let azureInfo = strapi.config.get("server.azure", {});
       if (!azureInfo || !azureInfo.connectionSrtring) {
-        console.warn("Azure Storage Connection String not found. Skipping upload.");
-        return null;
+        console.warn("Azure Storage Connection String not found. Saving locally to public/uploads.");
+        
+        const uploadDir = path.resolve("public/uploads");
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        
+        const filePath = path.join(uploadDir, name);
+        fs.writeFileSync(filePath, file);
+        
+        const baseUrl = process.env.URL || "https://apivps.nacionalhidro.com.br";
+        return `${baseUrl}/uploads/${name}`;
       }
+      
       const blobServiceClient = BlobServiceClient.fromConnectionString(
         azureInfo.connectionSrtring
       );
