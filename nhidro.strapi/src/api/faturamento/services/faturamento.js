@@ -191,12 +191,26 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
     gerar: async (faturamentoInput) => {
         let retorno = {};
 
-        // Salva os dados editáveis fornecidos pelo frontend (relations vêm como ID ou objetos tratáveis pelo form)
+        // 1. Prepara payload limpo apenas com campos escalares para salvar os dados editáveis
+        const editableFields = [
+            'DadosFaturamento', 'DataEmissao', 'DataVencimento', 'ValorIss', 'ValorInss', 
+            'ValorIr', 'ValorPis', 'ValorCofins', 'ValorCsll', 'ValorLiquido', 'Descricao', 
+            'DadosComplementares', 'NumeroPedido', 'Observacoes', 'ValorRateado'
+        ];
+        const updatePayload = {};
+        editableFields.forEach(field => {
+            if (faturamentoInput[field] !== undefined) updatePayload[field] = faturamentoInput[field];
+        });
+        if (faturamentoInput.EmpresaBanco?.id) {
+            updatePayload.EmpresaBanco = faturamentoInput.EmpresaBanco.id;
+        }
+
+        // 2. Salva no banco com payload limpo (evita erro 500 do Strapi com lixo no faturamentoInput)
         await strapi.entityService.update('api::faturamento.faturamento', faturamentoInput.id, {
-            data: faturamentoInput
+            data: updatePayload
         });
 
-        // Para geração do documento, busca o faturamento completo com todas as relações do banco
+        // 3. Busca faturamento populado pra gerar os docs PDF/XML
         let faturamentoFull = await strapi.entityService.findOne('api::faturamento.faturamento', faturamentoInput.id, {
             populate: {
                 Empresa: { populate: '*' }, 
@@ -206,23 +220,15 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
             }
         });
 
-        // Preserva o EmpresaBanco selecionado no formulário caso tenha sido recém modificado 
-        if (faturamentoInput.EmpresaBanco) faturamentoFull.EmpresaBanco = faturamentoInput.EmpresaBanco;
+        if (!faturamentoFull) {
+            return { success: false, error: 'Faturamento não encontrado no banco de dados.' };
+        }
 
-        // Repassa os inputs do form, pois a resposta da DB pode estar atrasada (transação vs read)
-        faturamentoFull.DadosFaturamento = faturamentoInput.DadosFaturamento;
-        faturamentoFull.DataEmissao = faturamentoInput.DataEmissao;
-        faturamentoFull.DataVencimento = faturamentoInput.DataVencimento;
-        faturamentoFull.ValorIss = faturamentoInput.ValorIss;
-        faturamentoFull.ValorInss = faturamentoInput.ValorInss;
-        faturamentoFull.ValorIr = faturamentoInput.ValorIr;
-        faturamentoFull.ValorPis = faturamentoInput.ValorPis;
-        faturamentoFull.ValorCofins = faturamentoInput.ValorCofins;
-        faturamentoFull.ValorCsll = faturamentoInput.ValorCsll;
-        faturamentoFull.ValorLiquido = faturamentoInput.ValorLiquido;
-        faturamentoFull.Descricao = faturamentoInput.Descricao;
-        faturamentoFull.DadosComplementares = faturamentoInput.DadosComplementares;
-        faturamentoFull.NumeroPedido = faturamentoInput.NumeroPedido;
+        // Repassa os inputs caso o findOne ainda não tenha pegado
+        editableFields.forEach(field => {
+            if (faturamentoInput[field] !== undefined) faturamentoFull[field] = faturamentoInput[field];
+        });
+        if (faturamentoInput.EmpresaBanco) faturamentoFull.EmpresaBanco = faturamentoInput.EmpresaBanco;
 
         // Segurança para a geração
         if (!faturamentoFull.Medicao) faturamentoFull.Medicao = {};
@@ -230,29 +236,34 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
 
         console.log('[gerar] TipoFatura:', faturamentoFull.TipoFatura, '| id:', faturamentoFull.id);
 
-        // emite
-        if (faturamentoFull.TipoFatura === 'CTE') {
-            const req = await cte(faturamentoFull, faturamentoFull.Cliente);
-            faturamentoFull = req.faturamento;
-            faturamentoFull.Status = Enum_StatusFaturamento.Processando;
-            retorno = req.retorno;
-        }
-        else if (faturamentoFull.TipoFatura === 'NF') {
-            const req = await nfse(faturamentoFull, faturamentoFull.Cliente)
-            faturamentoFull = req.faturamento
-            faturamentoFull.Status = Enum_StatusFaturamento.Processando;
-            retorno = req.retorno;
-        }
-        else if (faturamentoFull.TipoFatura === 'RL') {
-            const req = await rl(faturamentoFull, faturamentoFull.Cliente)
-            faturamentoFull = req.faturamento
-            faturamentoFull.Status = Enum_StatusFaturamento.Emitido;
-            retorno = req.retorno;
+        try {
+            // emite
+            if (faturamentoFull.TipoFatura === 'CTE') {
+                const req = await cte(faturamentoFull, faturamentoFull.Cliente);
+                faturamentoFull = req.faturamento;
+                faturamentoFull.Status = Enum_StatusFaturamento.Processando;
+                retorno = req.retorno;
+            }
+            else if (faturamentoFull.TipoFatura === 'NF') {
+                const req = await nfse(faturamentoFull, faturamentoFull.Cliente)
+                faturamentoFull = req.faturamento
+                faturamentoFull.Status = Enum_StatusFaturamento.Processando;
+                retorno = req.retorno;
+            }
+            else if (faturamentoFull.TipoFatura === 'RL') {
+                const req = await rl(faturamentoFull, faturamentoFull.Cliente)
+                faturamentoFull = req.faturamento
+                faturamentoFull.Status = Enum_StatusFaturamento.Emitido;
+                retorno = req.retorno;
+            }
+        } catch (e) {
+            console.error('[gerar] Fatal error during generation:', e);
+            return { success: false, error: 'Erro fatal ao gerar: ' + (e.message || String(e)) };
         }
 
-        // Salva somente os campos de status/arquivos para evitar erros de validação de relações do Strapi
+        // 4. Salva o resultado final da emissão  
         if (retorno.success) {
-            const updatePayload = {
+            const finalPayload = {
                 Status: faturamentoFull.Status,
                 Nota: faturamentoFull.Nota,
                 UrlArquivoNota: faturamentoFull.UrlArquivoNota,
@@ -262,7 +273,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
             };
 
             await strapi.entityService.update('api::faturamento.faturamento', faturamentoInput.id, {
-                data: updatePayload
+                data: finalPayload
             });
 
             retorno.data = faturamentoFull;
