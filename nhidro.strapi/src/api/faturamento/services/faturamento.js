@@ -63,22 +63,28 @@ const nfse = async (faturamento, cliente) => {
 }
 
 const rl = async (faturamento, cliente) => {
-    const query = `SELECT MAX(nota) AS max_nota 
-    FROM faturamentos f0
-    INNER JOIN faturamentos_empresa_links e0 ON f0.id = e0.faturamento_id
-    WHERE f0.tipo_fatura = 'RL' AND e0.empresa_id = ${faturamento.Empresa.id};`
-    const resp = await strapi.db.connection.raw(query);
-    console.log(resp);
-    const max_nota = resp[0][0]?.max_nota || 0;
-    faturamento.Nota = String(Number(max_nota) + 1).padStart(4,'0')
-    console.log(faturamento.Nota);
-    const reciboLoc = await relatorio.gerarRelatorioLocacao(faturamento, cliente);
+    try {
+        const query = `SELECT MAX(nota) AS max_nota 
+        FROM faturamentos f0
+        INNER JOIN faturamentos_empresa_links e0 ON f0.id = e0.faturamento_id
+        WHERE f0.tipo_fatura = 'RL' AND e0.empresa_id = ${faturamento.Empresa.id};`
+        const resp = await strapi.db.connection.raw(query);
+        console.log(resp);
+        const max_nota = resp[0][0]?.max_nota || 0;
+        faturamento.Nota = String(Number(max_nota) + 1).padStart(4,'0')
+        console.log('[RL] Gerando recibo locacao, Nota:', faturamento.Nota);
+        console.log('[RL] Medicao.Ordens count:', faturamento.Medicao?.Ordens?.length);
+        const reciboLoc = await relatorio.gerarRelatorioLocacao(faturamento, cliente);
 
-    if (reciboLoc.success) {
-        faturamento.UrlArquivoNota = reciboLoc.path;
+        if (reciboLoc.success) {
+            faturamento.UrlArquivoNota = reciboLoc.path;
+        }
+
+        return { faturamento, retorno: reciboLoc }
+    } catch (err) {
+        console.error('[RL] Erro ao gerar recibo de locacao:', err?.message || err);
+        return { faturamento, retorno: { success: false, error: err?.message || String(err) } }
     }
-
-    return { faturamento, retorno: reciboLoc }
 }
 
 const cte = async (faturamento, cliente) => {
@@ -182,40 +188,84 @@ const cancelar_nota = async (faturamento, cte) => {
 const { createCoreService } = require('@strapi/strapi').factories;
 
 module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) => ({
-    gerar: async (faturamento) => {
+    gerar: async (faturamentoInput) => {
         let retorno = {};
-        await strapi.entityService.update('api::faturamento.faturamento', faturamento.id, {
-            data: faturamento
+
+        // Salva os dados editáveis fornecidos pelo frontend (relations vêm como ID ou objetos tratáveis pelo form)
+        await strapi.entityService.update('api::faturamento.faturamento', faturamentoInput.id, {
+            data: faturamentoInput
         });
 
-        //emite CTe
-        if (faturamento.TipoFatura === 'CTE') {
-            const req = await cte(faturamento, faturamento.Cliente);
-            faturamento = req.faturamento;
-            faturamento.Status = Enum_StatusFaturamento.Processando;
+        // Para geração do documento, busca o faturamento completo com todas as relações do banco
+        let faturamentoFull = await strapi.entityService.findOne('api::faturamento.faturamento', faturamentoInput.id, {
+            populate: {
+                Empresa: { populate: '*' }, 
+                Cliente: true,
+                EmpresaBanco: true,
+                Medicao: { populate: { Ordens: { populate: '*' } } } 
+            }
+        });
+
+        // Preserva o EmpresaBanco selecionado no formulário caso tenha sido recém modificado 
+        if (faturamentoInput.EmpresaBanco) faturamentoFull.EmpresaBanco = faturamentoInput.EmpresaBanco;
+
+        // Repassa os inputs do form, pois a resposta da DB pode estar atrasada (transação vs read)
+        faturamentoFull.DadosFaturamento = faturamentoInput.DadosFaturamento;
+        faturamentoFull.DataEmissao = faturamentoInput.DataEmissao;
+        faturamentoFull.DataVencimento = faturamentoInput.DataVencimento;
+        faturamentoFull.ValorIss = faturamentoInput.ValorIss;
+        faturamentoFull.ValorInss = faturamentoInput.ValorInss;
+        faturamentoFull.ValorIr = faturamentoInput.ValorIr;
+        faturamentoFull.ValorPis = faturamentoInput.ValorPis;
+        faturamentoFull.ValorCofins = faturamentoInput.ValorCofins;
+        faturamentoFull.ValorCsll = faturamentoInput.ValorCsll;
+        faturamentoFull.ValorLiquido = faturamentoInput.ValorLiquido;
+        faturamentoFull.Descricao = faturamentoInput.Descricao;
+        faturamentoFull.DadosComplementares = faturamentoInput.DadosComplementares;
+        faturamentoFull.NumeroPedido = faturamentoInput.NumeroPedido;
+
+        // Segurança para a geração
+        if (!faturamentoFull.Medicao) faturamentoFull.Medicao = {};
+        if (!faturamentoFull.Medicao.Ordens) faturamentoFull.Medicao.Ordens = [];
+
+        console.log('[gerar] TipoFatura:', faturamentoFull.TipoFatura, '| id:', faturamentoFull.id);
+
+        // emite
+        if (faturamentoFull.TipoFatura === 'CTE') {
+            const req = await cte(faturamentoFull, faturamentoFull.Cliente);
+            faturamentoFull = req.faturamento;
+            faturamentoFull.Status = Enum_StatusFaturamento.Processando;
             retorno = req.retorno;
         }
-        //emite NFe
-        else if (faturamento.TipoFatura === 'NF') {
-            const req = await nfse(faturamento, faturamento.Cliente)
-            faturamento = req.faturamento
-            faturamento.Status = Enum_StatusFaturamento.Processando;
+        else if (faturamentoFull.TipoFatura === 'NF') {
+            const req = await nfse(faturamentoFull, faturamentoFull.Cliente)
+            faturamentoFull = req.faturamento
+            faturamentoFull.Status = Enum_StatusFaturamento.Processando;
             retorno = req.retorno;
         }
-        //emite RL
-        else if (faturamento.TipoFatura === 'RL') {
-            const req = await rl(faturamento, faturamento.Cliente)
-            faturamento = req.faturamento
-            faturamento.Status = Enum_StatusFaturamento.Emitido;
+        else if (faturamentoFull.TipoFatura === 'RL') {
+            const req = await rl(faturamentoFull, faturamentoFull.Cliente)
+            faturamentoFull = req.faturamento
+            faturamentoFull.Status = Enum_StatusFaturamento.Emitido;
             retorno = req.retorno;
         }
 
+        // Salva somente os campos de status/arquivos para evitar erros de validação de relações do Strapi
         if (retorno.success) {
-            await strapi.entityService.update('api::faturamento.faturamento', faturamento.id, {
-                data: faturamento
+            const updatePayload = {
+                Status: faturamentoFull.Status,
+                Nota: faturamentoFull.Nota,
+                UrlArquivoNota: faturamentoFull.UrlArquivoNota,
+                FocusReferencia: faturamentoFull.FocusReferencia,
+                DadosWebHook: faturamentoFull.DadosWebHook,
+                Observacoes: faturamentoFull.Observacoes,
+            };
+
+            await strapi.entityService.update('api::faturamento.faturamento', faturamentoInput.id, {
+                data: updatePayload
             });
 
-            retorno.data = faturamento;
+            retorno.data = faturamentoFull;
         }
         return retorno;
     },
@@ -470,6 +520,60 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         retorno.msg = req;
         retorno.success = req.status === 'processando_autorizacao';
         return { referencia, retorno }
+    },
+    consultar_nfse: async (data) => {
+        const api = await strapi.db.query("api::configuracao.configuracao").findOne({
+            where: { descricao: { $eq: 'Focus_Api' } }
+        });
+
+        const faturamento = await strapi.entityService.findOne('api::faturamento.faturamento', data.id, {
+            populate: ['Empresa']
+        });
+
+        if (!faturamento) return { success: false, msg: 'Faturamento não encontrado' };
+        if (!faturamento.FocusReferencia) return { success: false, msg: 'Faturamento sem referência Focus. Gere novamente.' };
+        if (!faturamento.Empresa?.FocusToken) return { success: false, msg: 'Empresa sem token Focus configurado.' };
+
+        const isCte = faturamento.TipoFatura === 'CTE';
+        const url = isCte
+            ? `${api.Valor}/v2/cte/${faturamento.FocusReferencia}`
+            : `${api.Valor}/v2/nfse/${faturamento.FocusReferencia}`;
+
+        console.log('[consultar_nfse] Consultando Focus:', url);
+
+        const req = await new Promise((resolve, reject) => {
+            request({
+                method: 'GET',
+                url,
+                auth: { user: faturamento.Empresa.FocusToken, password: '' }
+            }, function (error, response) {
+                if (error) { reject(error); return; }
+                try { resolve(JSON.parse(response.body)); }
+                catch (e) { reject(new Error('Resposta inválida da Focus: ' + response.body)); }
+            });
+        });
+
+        console.log('[consultar_nfse] Resposta Focus:', req);
+
+        const statusAutorizado = req.status === 'autorizado';
+        const statusFalha = req.status === 'erro' || req.status === 'cancelado' || req.status === 'denegado';
+
+        if (statusAutorizado) {
+            faturamento.DadosWebHook = req;
+            faturamento.Nota = req.numero;
+            faturamento.UrlArquivoNota = req.caminho_dacte || req.url;
+            faturamento.Status = Enum_StatusFaturamento.Emitido;
+            faturamento.Observacoes = req.mensagem_sefaz ? `${faturamento.Observacoes || ''}; ${req.mensagem_sefaz}` : faturamento.Observacoes;
+            await strapi.entityService.update('api::faturamento.faturamento', faturamento.id, { data: faturamento });
+            return { success: true, status: req.status, emitido: true, msg: 'Nota autorizada e status atualizado!' };
+        } else if (statusFalha) {
+            faturamento.Status = Enum_StatusFaturamento.Falha;
+            faturamento.Observacoes = `${faturamento.Observacoes || ''}; Focus status: ${req.status} - ${req.erros?.[0]?.mensagem || req.mensagem_sefaz || ''}`;
+            await strapi.entityService.update('api::faturamento.faturamento', faturamento.id, { data: faturamento });
+            return { success: false, status: req.status, emitido: false, msg: `Erro na nota: ${req.erros?.[0]?.mensagem || req.status}` };
+        }
+
+        return { success: true, status: req.status, emitido: false, msg: `Status Focus atual: ${req.status}` };
     },
     buscar_relatorio: async (params) => {
         const query = `SELECT CASE             

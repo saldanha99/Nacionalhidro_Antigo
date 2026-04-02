@@ -159,18 +159,21 @@ async function getHTMLMedicao (medicao) {
 }
 
 async function getHTMLReciboLocacao (faturamento) {
-  const ordens = _.orderBy(faturamento.Medicao.Ordens, ['DataInicial'], ['asc']);
-  const data1 = moment(ordens[0].DataInicial).format("DD/MM/YYYY");
-  const data2 = moment(ordens[ordens.length - 1].DataInicial).format("DD/MM/YYYY");
-
-  const data_locacao = data1 === data2 ? data1 : `${data1} à ${data2}`;
+  let data_locacao = faturamento.DataEmissao ? moment(faturamento.DataEmissao).format("DD/MM/YYYY") : moment().format("DD/MM/YYYY");
+  
+  if (faturamento.Medicao?.Ordens && faturamento.Medicao.Ordens.length > 0) {
+    const ordens = _.orderBy(faturamento.Medicao.Ordens, ['DataInicial'], ['asc']);
+    const data1 = moment(ordens[0].DataInicial).format("DD/MM/YYYY");
+    const data2 = moment(ordens[ordens.length - 1].DataInicial).format("DD/MM/YYYY");
+    data_locacao = data1 === data2 ? data1 : `${data1} à ${data2}`;
+  }
 
   var view = {
-    Destinatario: faturamento.Cliente,
-    Emitente: faturamento.Empresa,
-    DadosDeposito: `Banco: ${faturamento.EmpresaBanco?.Banco} Ag: ${faturamento.EmpresaBanco?.Agencia} C/C: ${faturamento.EmpresaBanco?.Conta}`.toLocaleUpperCase(),
-    NaturezaOperacao: faturamento.NaturezaOperacao,
-    RegimeTributario: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.SimplesNacional ? 'EMPRESA OPTANTE PELO SIMPLES NACIONAL' : 'EMPRESA OPTANTE PELO REGIME NORMAL',
+    Destinatario: faturamento.Cliente || {},
+    Emitente: faturamento.Empresa || {},
+    DadosDeposito: `Banco: ${faturamento.EmpresaBanco?.Banco || ''} Ag: ${faturamento.EmpresaBanco?.Agencia || ''} C/C: ${faturamento.EmpresaBanco?.Conta || ''}`.toLocaleUpperCase(),
+    NaturezaOperacao: faturamento.NaturezaOperacao || '',
+    RegimeTributario: faturamento.Empresa?.RegimeTributario === Enum_RegimeTributario.SimplesNacional ? 'EMPRESA OPTANTE PELO SIMPLES NACIONAL' : 'EMPRESA OPTANTE PELO REGIME NORMAL',
     DataEmissao: moment(faturamento.DataEmissao).utc().format("DD/MM/YYYY"),
     Vencimento: moment(faturamento.DataVencimento).utc().format("DD/MM/YYYY"),
     Periodo: data_locacao,

@@ -4,10 +4,12 @@ const initialState = {
     stateCancelar:{},
     stateSalvar:{},
     stateNFS:{},
+    stateConsultarNFSe:{},
     faturamentoStatus:{},
     print: {},
     error:{},
     errorNFS:{},
+    errorConsultarNFSe:{},
     relatorio: []
   };
   
@@ -39,6 +41,12 @@ const initialState = {
       }
       case "NFS_SALVAR_ERROR": {
         return { ...state, errorNFS: action.payload };
+      }
+      case "CONSULTAR_NFSE_SUCCESS": {
+        return { ...state, stateConsultarNFSe: action.payload };
+      }
+      case "CONSULTAR_NFSE_ERROR": {
+        return { ...state, errorConsultarNFSe: action.payload };
       }
       case "BUSCAR_FATURAMENTO_STATUS": {
         return { ...state, faturamentoStatus: action.payload };

@@ -1,0 +1,5 @@
+
+> nhidro-strapi@0.1.0 develop
+> strapi develop
+
+sh: strapi: command not found

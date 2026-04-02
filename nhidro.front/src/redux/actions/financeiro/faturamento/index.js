@@ -358,3 +358,21 @@ export const buscarFaturamentosRelatorio = (data1, data2) => {
     });
   };
 };
+
+export const consultarNFSe = (model) => {
+  return (dispatch) => {
+    api.post("/api/faturamentos/consultar-nfse", model, function (status, data) {
+      if (status === 200 && !data.error) {
+        dispatch({
+          type: "CONSULTAR_NFSE_SUCCESS",
+          payload: data,
+        });
+      } else {
+        dispatch({
+          type: "CONSULTAR_NFSE_ERROR",
+          payload: data?.data || data,
+        });
+      }
+    });
+  };
+};

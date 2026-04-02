@@ -95,5 +95,14 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
             error: false,
             data: faturamentos
         };
+    },
+    consultar_nfse: async (ctx, next) => {
+        const data = ctx.request.body?.data;
+        const resp = await strapi.services["api::faturamento.faturamento"].consultar_nfse(data);
+  
+        return {
+            error: !resp.success,
+            data: resp
+        };
     }
 }));

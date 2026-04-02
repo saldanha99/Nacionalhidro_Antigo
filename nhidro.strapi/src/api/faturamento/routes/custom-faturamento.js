@@ -89,6 +89,15 @@ module.exports = {
           policies: [],
           middlewares: []
         }
+      },
+      {
+        method: 'POST',
+        path: '/faturamentos/consultar-nfse',
+        handler: 'faturamento.consultar_nfse',
+        config: {
+          policies: [],
+          middlewares: []
+        }
       }
     ],
   };

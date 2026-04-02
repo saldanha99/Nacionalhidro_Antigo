@@ -44,7 +44,7 @@ const ModalEmitirNFS = (props) => {
       setAba(1)
       setModel({
         prestador: {},
-        tomador: {},
+        tomador: { endereco: {} },
         servico: {
           iss_retido: true,
           aliquota: 5,
@@ -64,9 +64,9 @@ const ModalEmitirNFS = (props) => {
     }
   }, [modal])
 
-  const isButtonDisabled = (!model?.EmpresaBanco || !model.data_emissao_aux || !model.data_vencimento || !model.empresa_id || !model.tomador.cnpj || !model.tomador.razao_social || !model.tomador.endereco.logradouro
-    || !model.tomador.endereco.numero || !model.tomador.endereco.bairro || !model.tomador.endereco.cep || !model.tomador.endereco.uf || !model.tomador.endereco.codigo_municipio || !model.servico.iss_retido || !model.servico.item_lista_servico || !model.servico.codigo_cnae
-    || !model.servico.aliquota || !model.itens.length || !model.tributacao_rps);
+  const isButtonDisabled = (!model?.EmpresaBanco || !model.data_emissao_aux || !model.data_vencimento || !model.empresa_id || !model.tomador?.cnpj || !model.tomador?.razao_social || !model.tomador?.endereco?.logradouro
+    || !model.tomador?.endereco?.numero || !model.tomador?.endereco?.bairro || !model.tomador?.endereco?.cep || !model.tomador?.endereco?.uf || !model.tomador?.endereco?.codigo_municipio || !model.servico?.iss_retido || !model.servico?.item_lista_servico || !model.servico?.codigo_cnae
+    || !model.servico?.aliquota || !model.itens?.length || !model.tributacao_rps);
 
   const salvar = () => {
     const time = `${new Date().getHours()}:${new Date().getMinutes()}:${new Date().getSeconds()}`
@@ -206,8 +206,9 @@ const ModalEmitirNFS = (props) => {
                             type="text"
                             id="numero_cliente"
                             name="numero_cliente"
-                            value={model.tomador.numero}
+                            value={model.tomador?.endereco?.numero || ''}
                             onChange={(e) => {
+                              if (!model.tomador.endereco) model.tomador.endereco = {};
                               model.tomador.endereco.numero = e.target.value
                               setModel({ ...model, tomador: model.tomador })
                             }}
@@ -225,8 +226,9 @@ const ModalEmitirNFS = (props) => {
                             type="text"
                             id="complemento_cliente"
                             name="complemento_cliente"
-                            value={model.tomador.endereco.complemento}
+                            value={model.tomador?.endereco?.complemento || ''}
                             onChange={(e) => {
+                              if (!model.tomador.endereco) model.tomador.endereco = {};
                               model.tomador.endereco.complemento = e.target.value
                               setModel({ ...model, tomador: model.tomador })
                             }}
@@ -244,8 +246,9 @@ const ModalEmitirNFS = (props) => {
                             type="text"
                             id="bairro_cliente"
                             name="bairro_cliente"
-                            value={model.tomador.endereco.bairro}
+                            value={model.tomador?.endereco?.bairro || ''}
                             onChange={(e) => {
+                              if (!model.tomador.endereco) model.tomador.endereco = {};
                               model.tomador.endereco.bairro = e.target.value
                               setModel({ ...model, tomador: model.tomador })
                             }}
@@ -263,8 +266,9 @@ const ModalEmitirNFS = (props) => {
                             type="text"
                             id="cep_cliente"
                             name="cep_cliente"
-                            value={model.tomador.endereco.cep}
+                            value={model.tomador?.endereco?.cep || ''}
                             onChange={(e) => {
+                              if (!model.tomador.endereco) model.tomador.endereco = {};
                               model.tomador.endereco.cep = e.target.value
                               setModel({ ...model, tomador: model.tomador })
                             }}
@@ -282,8 +286,9 @@ const ModalEmitirNFS = (props) => {
                             type="text"
                             id="uf_cliente"
                             name="uf_cliente"
-                            value={model.tomador.endereco.uf}
+                            value={model.tomador?.endereco?.uf || ''}
                             onChange={(e) => {
+                              if (!model.tomador.endereco) model.tomador.endereco = {};
                               model.tomador.endereco.uf = e.target.value?.toUpperCase()
                               setModel({ ...model, tomador: model.tomador })
                             }}

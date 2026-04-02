@@ -24,9 +24,10 @@ import {
   FiSend,
   FiList,
   FiEye,
-  FiCopy
+  FiCopy,
+  FiRefreshCw
 } from "react-icons/fi";
-import { buscarFaturamentosRaw, buscarFaturamento, alterarFaturamento, gerarFaturamento, enviarFaturamento, cancelarFaturamento, clonarFaturamento, emitirNFS } from "../../../../../redux/actions/financeiro/faturamento";
+import { buscarFaturamentosRaw, buscarFaturamento, alterarFaturamento, gerarFaturamento, enviarFaturamento, cancelarFaturamento, clonarFaturamento, emitirNFS, consultarNFSe } from "../../../../../redux/actions/financeiro/faturamento";
 import { buscarContatosCliente } from "../../../../../redux/actions/administrador/cliente/listaClientesActions";
 import { buscarEmpresas } from "@src/redux/actions/administrador/empresa/buscarEmpresasActions"
 import ModalEdicaoFaturamento from "../modals/ModalEdicaoFaturamento";
@@ -179,6 +180,21 @@ const FaturamentoStatusFaturamento = (props) => {
     handleToastError()
     setLoadingSkeleton(false)
   }, [props?.error])
+
+  useEffectAfterMount(() => {
+    if (props.stateConsultarNFSe?.data) {
+      MySwal.fire(
+        props.stateConsultarNFSe.data.emitido ? 'Sucesso!' : 'Atenção!',
+        props.stateConsultarNFSe.data.msg || `Status atual: ${props.stateConsultarNFSe.data.status}`,
+        props.stateConsultarNFSe.data.emitido ? 'success' : 'info'
+      )
+      buscarFaturamentos(intervaloData);
+    }
+  }, [props?.stateConsultarNFSe])
+
+  useEffectAfterMount(() => {
+    MySwal.fire('Erro ao consultar!', props.errorConsultarNFSe?.data?.msg || 'Falha ao consultar status na Focus.', 'error')
+  }, [props?.errorConsultarNFSe])
 
   useEffectAfterMount(() => {
     if (props.faturamentos) {
@@ -556,6 +572,30 @@ const FaturamentoStatusFaturamento = (props) => {
                         }}
                       />
                     }
+                    {row.original.status === Enum_StatusFaturamento.Processando && (row.original.tipo_fatura === 'NF' || row.original.tipo_fatura === 'CTE') &&
+                      <FiRefreshCw
+                        title="Consultar status na Focus"
+                        style={{ margin: "5px", cursor: 'pointer' }}
+                        size={20}
+                        onClick={() => {
+                          MySwal.fire({
+                            title: 'Consultar status da nota fiscal na Focus?',
+                            text: `Tipo: ${row.original.tipo_fatura} | Medição ${row.original.medicao}/${row.original.medicao_revisao}`,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Consultar',
+                            cancelButtonText: 'Cancelar',
+                            customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-outline-primary mr-1' },
+                            buttonsStyling: false,
+                            reverseButtons: true,
+                          }).then((result) => {
+                            if (result.value) {
+                              props.consultarNFSe({ data: { id: row.original.id } });
+                            }
+                          });
+                        }}
+                      />
+                    }
                     {row.original.status === Enum_StatusFaturamento.Enviado &&
                       <FiList
                         title="Listar"
@@ -801,9 +841,11 @@ const mapStateToProps = (state) => {
     faturamento: state?.faturamento?.item,
     stateSalvar: state?.faturamento?.stateSalvar,
     stateNFS: state?.faturamento?.stateNFS,
+    stateConsultarNFSe: state?.faturamento?.stateConsultarNFSe,
     stateCancelar: state?.faturamento?.stateCancelar,
     error: state?.faturamento?.error,
     errorNFS: state?.faturamento?.errorNFS,
+    errorConsultarNFSe: state?.faturamento?.errorConsultarNFSe,
     empresas: state?.empresa?.empresas
   };
 };
@@ -818,5 +860,6 @@ export default connect(mapStateToProps, {
   emitirNFS,
   enviarFaturamento,
   cancelarFaturamento,
-  clonarFaturamento
+  clonarFaturamento,
+  consultarNFSe
 })(FaturamentoStatusFaturamento);
