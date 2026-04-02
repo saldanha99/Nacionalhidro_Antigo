@@ -587,17 +587,21 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         const statusFalha = req.status === 'erro' || req.status === 'cancelado' || req.status === 'denegado';
 
         if (statusAutorizado) {
-            faturamento.DadosWebHook = req;
-            faturamento.Nota = req.numero;
-            faturamento.UrlArquivoNota = req.caminho_dacte || req.url;
-            faturamento.Status = Enum_StatusFaturamento.Emitido;
-            faturamento.Observacoes = req.mensagem_sefaz ? `${faturamento.Observacoes || ''}; ${req.mensagem_sefaz}` : faturamento.Observacoes;
-            await strapi.entityService.update('api::faturamento.faturamento', faturamento.id, { data: faturamento });
+            const updateData = {
+                DadosWebHook: req,
+                Nota: req.numero,
+                UrlArquivoNota: req.caminho_dacte || req.url,
+                Status: Enum_StatusFaturamento.Emitido,
+                Observacoes: req.mensagem_sefaz ? `${faturamento.Observacoes || ''}; ${req.mensagem_sefaz}` : faturamento.Observacoes
+            };
+            await strapi.entityService.update('api::faturamento.faturamento', faturamento.id, { data: updateData });
             return { success: true, status: req.status, emitido: true, msg: 'Nota autorizada e status atualizado!' };
         } else if (statusFalha) {
-            faturamento.Status = Enum_StatusFaturamento.Falha;
-            faturamento.Observacoes = `${faturamento.Observacoes || ''}; Focus status: ${req.status} - ${req.erros?.[0]?.mensagem || req.mensagem_sefaz || ''}`;
-            await strapi.entityService.update('api::faturamento.faturamento', faturamento.id, { data: faturamento });
+            const updateData = {
+                Status: Enum_StatusFaturamento.Falha,
+                Observacoes: `${faturamento.Observacoes || ''}; Focus status: ${req.status} - ${req.erros?.[0]?.mensagem || req.mensagem_sefaz || ''}`
+            };
+            await strapi.entityService.update('api::faturamento.faturamento', faturamento.id, { data: updateData });
             return { success: false, status: req.status, emitido: false, msg: `Erro na nota: ${req.erros?.[0]?.mensagem || req.status}` };
         }
 
