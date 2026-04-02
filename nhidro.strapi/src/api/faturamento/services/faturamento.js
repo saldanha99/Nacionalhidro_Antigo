@@ -199,16 +199,33 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         ];
         const updatePayload = {};
         editableFields.forEach(field => {
-            if (faturamentoInput[field] !== undefined) updatePayload[field] = faturamentoInput[field];
+            let val = faturamentoInput[field];
+            if (val !== undefined) {
+                // Se for campo decimal e vier vazio, anula para não estourar 500 no Strapi
+                if (['ValorIss', 'ValorInss', 'ValorIr', 'ValorPis', 'ValorCofins', 'ValorCsll', 'ValorLiquido', 'ValorRateado'].includes(field)) {
+                    if (val === "" || val === null) val = null;
+                    else val = Number(val) || 0;
+                }
+                // Se for data e vier vazia, anular
+                if (['DataEmissao', 'DataVencimento'].includes(field)) {
+                    if (val === "") val = null;
+                }
+                updatePayload[field] = val;
+            }
         });
         if (faturamentoInput.EmpresaBanco?.id) {
             updatePayload.EmpresaBanco = faturamentoInput.EmpresaBanco.id;
         }
 
         // 2. Salva no banco com payload limpo (evita erro 500 do Strapi com lixo no faturamentoInput)
-        await strapi.entityService.update('api::faturamento.faturamento', faturamentoInput.id, {
-            data: updatePayload
-        });
+        try {
+            await strapi.entityService.update('api::faturamento.faturamento', faturamentoInput.id, {
+                data: updatePayload
+            });
+        } catch (updateErr) {
+            console.error('[gerar] Erro na atualizacao previa de faturamento:', updateErr.message);
+            return { success: false, error: 'Erro de validação dos campos na pré-atualização: ' + updateErr.message };
+        }
 
         // 3. Busca faturamento populado pra gerar os docs PDF/XML
         let faturamentoFull = await strapi.entityService.findOne('api::faturamento.faturamento', faturamentoInput.id, {
