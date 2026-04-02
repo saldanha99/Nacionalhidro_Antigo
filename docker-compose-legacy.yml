@@ -16,7 +16,10 @@ services:
       - internal
 
   strapi-legacy:
-    image: nacionalhidro-legacy-backend:latest # Build this on the VPS first
+    build:
+      context: ./nhidro.strapi
+      dockerfile: Dockerfile
+    image: nacionalhidro-legacy-backend:latest
     restart: always
     environment:
       DATABASE_HOST: db-legacy
@@ -49,7 +52,10 @@ services:
         - "traefik.docker.network=hidro"
 
   front-legacy:
-    image: nacionalhidro-legacy-frontend:latest # Build this on the VPS first
+    build: 
+      context: ./nhidro.front
+      dockerfile: Dockerfile
+    image: nacionalhidro-legacy-frontend:latest
     restart: always
     environment:
       REACT_APP_BACKEND_URL: https://${API_SUBDOMAIN:-apivps.nacionalhidro.com.br}/
