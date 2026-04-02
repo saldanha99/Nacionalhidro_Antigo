@@ -203,8 +203,9 @@ module.exports = {
   
     const response = await axios(config);
     const buffer = Buffer.from(response.data?.pdf?.data);
-    const random = (Math.random() + 1).toString(36).substring(4)
-    var filename = `faturamento_${faturamento.Cliente.RazaoSocial}_${faturamento.id}_${random}.pdf`.toLocaleLowerCase();
+    const random = (Math.random() + 1).toString(36).substring(4);
+    const nomeClienteSanitizado = faturamento.Cliente?.RazaoSocial?.replace(/[^a-zA-Z0-9]/g, '_') || 'cliente';
+    var filename = `faturamento_${nomeClienteSanitizado}_${faturamento.id}_${random}.pdf`.toLowerCase();
 
     var path = await strapi.services["api::configuracao.configuracao"].upload(buffer, filename, 'application/pdf');
 
@@ -266,9 +267,9 @@ module.exports = {
   
       const response = await axios(config)
       const buffer = Buffer.from(response.data?.pdf?.data)
-      let date = new Date().toISOString();
-      date = date.replace('-','').replace('-','').replace('T','').replace(':','').replace(':','').slice(0,14);;
-      var filename = `Proposta_${proposta.Cliente.RazaoSocial}_${proposta.Codigo}_${date}.pdf`.replace(/[\x00-\x1F\x7F]/g, '').trim().toLocaleLowerCase();
+      const date = new Date().getTime();
+      const nomeClienteSanitizado = proposta.Cliente?.RazaoSocial?.replace(/[^a-zA-Z0-9]/g, '_') || 'cliente';
+      var filename = `Proposta_${nomeClienteSanitizado}_${proposta.Codigo}_${date}.pdf`.toLowerCase();
 
       proposta.NomeArquivo = filename;
       proposta.UrlArquivo = await strapi.services["api::configuracao.configuracao"].upload(buffer, filename, 'application/pdf');
