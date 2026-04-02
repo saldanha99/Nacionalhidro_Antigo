@@ -8,7 +8,7 @@ const { createCoreController } = require('@strapi/strapi').factories;
 
 module.exports = createCoreController('api::faturamento.faturamento', ({ strapi }) => ({
     gerar: async (ctx, next) => {
-        const data = ctx.request.body?.data;
+        const data = ctx.request.body?.data || ctx.request.body;
         const resp = await strapi.services["api::faturamento.faturamento"].gerar(data);
   
         return {
@@ -17,7 +17,7 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
         };
     },
     enviar: async (ctx, next) => {
-        const data = ctx.request.body?.data;
+        const data = ctx.request.body?.data || ctx.request.body;
         const sent = await strapi.services["api::faturamento.faturamento"].enviar(data);
   
         return {
@@ -26,7 +26,7 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
         };
     },
     cancelar: async (ctx, next) => {
-        const data = ctx.request.body;
+        const data = ctx.request.body?.data || ctx.request.body;
         const resp = await strapi.services["api::faturamento.faturamento"].cancelar(data);
   
         return {
@@ -35,7 +35,7 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
         };
     },
     clonar: async (ctx, next) => {
-        const data = ctx.request.body;
+        const data = ctx.request.body?.data || ctx.request.body;
         const resp = await strapi.services["api::faturamento.faturamento"].clonar(data);
   
         return {
@@ -44,7 +44,7 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
         };
     },
     buscar: async (ctx, next) => {
-        const data = ctx.request.body?.params;
+        const data = ctx.request.body?.params || ctx.request.body;
         const faturamentos = await strapi.services["api::faturamento.faturamento"].buscar(data);
   
         return {
@@ -53,7 +53,7 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
         };
     },
     buscar_por_cliente: async (ctx, next) => {
-        const data = ctx.request.body?.params;
+        const data = ctx.request.body?.params || ctx.request.body;
         const list = await strapi.services["api::faturamento.faturamento"].buscar_por_cliente(data);
   
         return {
@@ -62,14 +62,14 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
         };
     },
     focus_web_hook_nfse: async (ctx, next) => {
-        const data = ctx.request.body;
+        const data = ctx.request.body?.data || ctx.request.body;
         console.log(data);
         strapi.services["api::faturamento.faturamento"].focus_web_hook_nfse(data);
 
         return true;
     },
     focus_web_hook_cte: async (ctx, next) => {
-        const data = ctx.request.body;
+        const data = ctx.request.body?.data || ctx.request.body;
         console.log('focus_web_hook_cte recebido:', JSON.stringify(data));
         try {
             await strapi.services["api::faturamento.faturamento"].focus_web_hook_cte(data);
@@ -79,7 +79,7 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
         return true;
     },
     emitir_nfse: async (ctx, next) => {
-        const data = ctx.request.body.data;
+        const data = ctx.request.body?.data || ctx.request.body;
         const resp = await strapi.services["api::faturamento.faturamento"].emitir_nfse(data);
   
         return {
@@ -88,7 +88,7 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
         };
     },
     buscar_relatorio: async (ctx, next) => {
-        const data = ctx.request.body?.params;
+        const data = ctx.request.body?.params || ctx.request.body;
         const faturamentos = await strapi.services["api::faturamento.faturamento"].buscar_relatorio(data);
   
         return {
@@ -97,7 +97,7 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
         };
     },
     consultar_nfse: async (ctx, next) => {
-        const data = ctx.request.body?.data;
+        const data = ctx.request.body?.data || ctx.request.body;
         const resp = await strapi.services["api::faturamento.faturamento"].consultar_nfse(data);
   
         return {
