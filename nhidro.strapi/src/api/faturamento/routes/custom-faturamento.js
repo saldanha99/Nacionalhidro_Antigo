@@ -59,6 +59,7 @@ module.exports = {
         path: '/faturamentos/focus-webhook-nfse',
         handler: 'faturamento.focus_web_hook_nfse',
         config: {
+          auth: false,
           policies: [],
           middlewares: []
         }
@@ -68,6 +69,7 @@ module.exports = {
         path: '/faturamentos/focus-webhook-cte',
         handler: 'faturamento.focus_web_hook_cte',
         config: {
+          auth: false,
           policies: [],
           middlewares: []
         }
@@ -77,6 +79,7 @@ module.exports = {
         path: '/faturamentos/emitir-nfs',
         handler: 'faturamento.emitir_nfse',
         config: {
+          auth: false,
           policies: [],
           middlewares: []
         }
@@ -95,6 +98,7 @@ module.exports = {
         path: '/faturamentos/consultar-nfse',
         handler: 'faturamento.consultar_nfse',
         config: {
+          auth: false,
           policies: [],
           middlewares: []
         }
