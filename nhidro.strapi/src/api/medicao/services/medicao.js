@@ -405,6 +405,7 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
                     }
                 ]
             },
+            limit: 50,
             populate: ['Ordens.Servicos, Ordens.Escala.EscalaVeiculos.Veiculo, Ordens.Proposta, Empresa, Cliente, Contato, Ordens.Equipamento']
         });
         const message =`
@@ -439,7 +440,12 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
                     Content: view
                 }
             ]
-            email.sendMail(medicao.Contato?.Email?.toLowerCase(), 'Nacional Hidro - Medição em Aberto', message, files);
+            await email.sendMail(medicao.Contato?.Email?.toLowerCase(), 'Nacional Hidro - Medição em Aberto', message, files);
+
+            // Atualiza a DataCobranca para hoje, evitando o re-envio diário em loop e destravando a fila de e-mails
+            await strapi.entityService.update("api::medicao.medicao", medicao.id, {
+                data: { DataCobranca: new Date() }
+            });
         }
     }
 }));
