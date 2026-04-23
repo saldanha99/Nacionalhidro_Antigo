@@ -15,6 +15,9 @@ if (SMTP_USER && SMTP_PASS) {
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
+    pool: true, // Reuse connections
+    maxConnections: 1, // Limit for Gmail stability
+    maxMessages: 100, // Limit before reconnecting
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,

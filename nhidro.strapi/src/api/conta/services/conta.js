@@ -26,7 +26,7 @@ module.exports = {
 
     let lista = await strapi.entityService.findMany('api::conta.conta', {
       sort: { id: 'DESC' },
-      filters: { Status: Enum_StatusContas.Baixado },
+      filters: { Status: { $in: [Enum_StatusContas.Baixado, Enum_StatusContas.Pago] } },
       populate: ['Empresa', 'Empresa.EmpresaBanco', 'Fornecedor', 'ContaCentrosCustos', 'ContaCentrosCustos.CentroCusto', 'ContaNaturezasContabeis', 'ContaNaturezasContabeis.NaturezaContabil', 'ContaPagamento', 'ContaPagamento.ContaPagamentoParcela', 'ContaPagamento.ContaPagamentoParcela.EmpresaBanco', 'UsuarioLancamento']
     });
     let parcelas = [];
@@ -71,7 +71,7 @@ module.exports = {
 
     let lista = await strapi.entityService.findMany('api::conta.conta', {
       sort: { id: 'DESC' },
-      filters: { Status: Enum_StatusContas.Baixado },
+      filters: { Status: { $in: [Enum_StatusContas.Baixado, Enum_StatusContas.Pago] } },
       populate: ['Empresa', 'Empresa.EmpresaBanco', 'Fornecedor', 'Cliente', 'ContaCentrosCustos', 'ContaCentrosCustos.CentroCusto', 'ContaNaturezasContabeis', 'ContaNaturezasContabeis.NaturezaContabil', 'ContaPagamento', 'ContaPagamento.ContaPagamentoParcela', 'ContaPagamento.ContaPagamentoParcela.EmpresaBanco', 'UsuarioLancamento']
     });
     let parcelas = [];
@@ -399,14 +399,17 @@ module.exports = {
     });
 
     let conta = await strapi.entityService.findOne('api::conta.conta', contaId, {
-      populate: ['ContaPagamento']
+      populate: ['ContaPagamento', 'ContaPagamento.ContaPagamentoParcela']
     });
 
-    if (parcela.StatusPagamento === Enum_StatusContasPagamento.Pago && parcela.NumeroParcela === conta.ContaPagamento.QuantidadeParcela) {
-      conta.Status = Enum_StatusContas.Pago;
-      await strapi.entityService.update('api::conta.conta', conta.id, {
-        data: conta
-      });
+    if (parcela.StatusPagamento === Enum_StatusContasPagamento.Pago) {
+      const todasPagas = conta.ContaPagamento.ContaPagamentoParcela.every(p => p.StatusPagamento === Enum_StatusContasPagamento.Pago);
+      if (todasPagas) {
+        conta.Status = Enum_StatusContas.Pago;
+        await strapi.entityService.update('api::conta.conta', conta.id, {
+          data: { Status: Enum_StatusContas.Pago }
+        });
+      }
     }
 
     return entry;

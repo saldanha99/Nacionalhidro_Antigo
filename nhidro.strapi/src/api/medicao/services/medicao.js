@@ -441,6 +441,9 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
                 }
             ]
             await email.sendMail(medicao.Contato?.Email?.toLowerCase(), 'Nacional Hidro - Medição em Aberto', message, files);
+            
+            // Aguarda 1.5 segundos entre cada e-mail para não bloquear o SMTP do Gmail
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
             // Atualiza a DataCobranca para hoje, evitando o re-envio diário em loop e destravando a fila de e-mails
             await strapi.entityService.update("api::medicao.medicao", medicao.id, {
