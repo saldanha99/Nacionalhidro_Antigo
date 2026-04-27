@@ -57,7 +57,7 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
         };
 
         if (data.Status === Enum_StatusMedicao.Conferencia && data.Vendedor) {
-            const item = await strapi.entityService.findOne("api::medicao.medicao", data.id, {populate: ['Ordens.Servicos, Ordens.Escala.EscalaVeiculos.Veiculo, Ordens.Proposta, Empresa, Cliente, Contato, Ordens.Equipamento']});
+            const item = await strapi.entityService.findOne("api::medicao.medicao", data.id, {populate: ['Ordens.Servicos', 'Ordens.Escala.EscalaVeiculos.Veiculo', 'Ordens.Proposta', 'Empresa', 'Cliente', 'Contato', 'Ordens.Equipamento']});
             
             let content = await relatorio.gerarRelatorioMedicao(item);
             if (!content?.pdf) content = await relatorio.gerarRelatorioMedicao(item);
@@ -115,13 +115,13 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
         return entry;
     },
     imprimir: async (data) => {
-        const item = await strapi.entityService.findOne("api::medicao.medicao", data.id, {populate: ['Ordens.Servicos, Ordens.Escala.EscalaVeiculos.Veiculo, Ordens.Proposta, Empresa, Cliente, Contato, Ordens.Equipamento']})
+        const item = await strapi.entityService.findOne("api::medicao.medicao", data.id, {populate: ['Ordens.Servicos', 'Ordens.Escala.EscalaVeiculos.Veiculo', 'Ordens.Proposta', 'Empresa', 'Cliente', 'Contato', 'Ordens.Equipamento']})
         let buffer = await relatorio.gerarRelatorioMedicao(item);
         if (!buffer?.pdf) buffer = await relatorio.gerarRelatorioMedicao(item)
         return buffer.pdf;
     },
     enviar: async (data) => {
-        const item = await strapi.entityService.findOne("api::medicao.medicao", data.id, {populate: ['Ordens.Servicos, Ordens.Escala.EscalaVeiculos.Veiculo, Ordens.Proposta, Empresa, Cliente, Contato, Ordens.Equipamento']})
+        const item = await strapi.entityService.findOne("api::medicao.medicao", data.id, {populate: ['Ordens.Servicos', 'Ordens.Escala.EscalaVeiculos.Veiculo', 'Ordens.Proposta', 'Empresa', 'Cliente', 'Contato', 'Ordens.Equipamento']})
 
         const message =`
         <div
@@ -136,8 +136,10 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
         </div>`;
         const emails = item.EmailCopia ? item.EmailCopia.split(';') : [];
         emails.push('financeiro@nacionalhidro.com.br');
-        let emailTo = '';
-        emailTo = item.Contato.Email.toLowerCase();
+        if (!item.Contato?.Email) {
+            throw new Error('Contato ou e-mail do contato não encontrado para esta medição.');
+        }
+        let emailTo = item.Contato.Email.toLowerCase();
 
         let content = await relatorio.gerarRelatorioMedicao(item)
         if (!content?.pdf) content = await relatorio.gerarRelatorioMedicao(item)
@@ -406,7 +408,7 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
                 ]
             },
             limit: 50,
-            populate: ['Ordens.Servicos, Ordens.Escala.EscalaVeiculos.Veiculo, Ordens.Proposta, Empresa, Cliente, Contato, Ordens.Equipamento']
+            populate: ['Ordens.Servicos', 'Ordens.Escala.EscalaVeiculos.Veiculo', 'Ordens.Proposta', 'Empresa', 'Cliente', 'Contato', 'Ordens.Equipamento']
         });
         const message =`
         <div

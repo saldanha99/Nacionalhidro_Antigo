@@ -20,8 +20,12 @@ module.exports = createCoreController('api::medicao.medicao', ({ strapi }) => ({
     alterar: async (ctx, next) => {
         const data = ctx.request.body?.data;
   
-        await strapi.services["api::medicao.medicao"].alterar(data);
-  
+        try {
+            await strapi.services["api::medicao.medicao"].alterar(data);
+        } catch (err) {
+            return ctx.badRequest(err.message);
+        }
+
         return {
             error: false,
             data: data
