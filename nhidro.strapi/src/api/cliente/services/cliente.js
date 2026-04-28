@@ -129,7 +129,7 @@ module.exports = createCoreService('api::cliente.cliente', ({ strapi }) => ({
                 emailsContato.forEach(x => emails.push(x))
             });
             const files = data.arquivos && data.arquivos.length ? data.arquivos.map(x => { return { Text: x.value, NomeArquivo: x.name, IsBase64: true } }) : []
-            email.sendMail(emails, data.assunto, data.mensagem, files);
+            await email.sendMail(emails, data.assunto, data.mensagem, files);
         }
     }
 }));

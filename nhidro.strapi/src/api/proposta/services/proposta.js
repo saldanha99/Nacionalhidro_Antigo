@@ -139,12 +139,7 @@ module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
     }
   },
   enviar: async (data, user) => {
-    await strapi.entityService.update('api::proposta.proposta', data.id, {
-      data: {
-        Enviada: true
-      }
-    });
-    const message =`
+    const message = `
     <div
       class="container"
       style="max-width: 90%; margin: auto; padding-top: 20px"
@@ -157,27 +152,46 @@ module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
         <p style="font-size: 12.0pt;">Atenciosamente,</p><br/>
         <img src="cid:logo" />
     </div>`;
-      
-    if (data.Contato && data.UrlArquivo)
-    {
+
+    if (data.Contato && data.UrlArquivo) {
       const emails = data.EmailCopia ? data.EmailCopia.split(';') : [];
       emails.push('bruno@nacionalhidro.com.br');
+      
       let emailTo = '';
-      if (data.NaoEnviarEmail) emailTo = user.email;
-      else {
+      if (data.NaoEnviarEmail) {
+        emailTo = user.email;
+      } else if (data.Contato.Email) {
         emailTo = data.Contato.Email.toLowerCase();
         emails.push(user.email);
+      } else {
+        throw new Error('E-mail do contato não encontrado.');
       }
+
       const files = [
         {
-            NomeArquivo: `${data.NomeArquivo}.pdf`,
-            UrlArquivo: data.UrlArquivo,
-            IsUrl: true
+          NomeArquivo: `${data.NomeArquivo || 'Proposta'}.pdf`,
+          UrlArquivo: data.UrlArquivo,
+          IsUrl: true
         }
-      ]
-      email.sendMail(emailTo, 'Nacional Hidro - Proposta', message, files, emails);
+      ];
+
+      try {
+        console.log(`[Proposta] Enviando e-mail para ${emailTo} (Código: ${data.Codigo})`);
+        await email.sendMail(emailTo, 'Nacional Hidro - Proposta', message, files, emails);
+        
+        // Atualizar status apenas se o e-mail for enviado com sucesso
+        await strapi.entityService.update('api::proposta.proposta', data.id, {
+          data: { Enviada: true }
+        });
+        
+        return { ...data, Enviada: true };
+      } catch (err) {
+        console.error(`[Proposta] Erro ao enviar e-mail da proposta ${data.Codigo}:`, err.message || err);
+        throw new Error(`Falha no envio do e-mail: ${err.message || err}`);
+      }
+    } else {
+      const missing = !data.Contato ? 'Contato' : 'Arquivo PDF (UrlArquivo)';
+      throw new Error(`Dados insuficientes para envio: faltando ${missing}.`);
     }
-    
-    return data;
   },
 }));

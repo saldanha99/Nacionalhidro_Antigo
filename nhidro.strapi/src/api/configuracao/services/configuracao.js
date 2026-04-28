@@ -59,7 +59,7 @@ module.exports = createCoreService(
         }
 
         const emails = copy ? copy.split(";") : [];
-        email.sendMail(
+        await email.sendMail(
           "doc@nacionalhidro.com.br",
           title,
           message,

@@ -317,7 +317,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
             <p style="font-size: 12.0pt;">Atenciosamente,</p><br/>
             <img src="cid:logo" />
         </div>`;
-        console.log(data);
+        
         const files = [
             {
                 NomeArquivo: data.UrlArquivoNota.endsWith('.html') ? 'fatura_nacional_hidro.html' : data.TipoFatura === 'RL' ? `recibo_locacao_nacional_hidro.pdf` : 'fatura_nacional_hidro.pdf',
@@ -344,18 +344,30 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
 
         const copia = data.EmailCopia ? data.EmailCopia.split(';') : [];
         copia.push('financeiro@nacionalhidro.com.br');
-        const sent = email.sendMail(data.Contato.Email.toLowerCase(), 'Nacional Hidro - Faturamento', message, files, copia);
+        
+        if (!data.Contato?.Email) {
+            console.error('[Faturamento] Erro: E-mail do contato não definido para faturamento id:', data.id);
+            return false;
+        }
 
-        if (sent) {
+        try {
+            console.log(`[Faturamento] Enviando e-mail para ${data.Contato.Email} (Faturamento ID: ${data.id})`);
+            await email.sendMail(data.Contato.Email.toLowerCase(), 'Nacional Hidro - Faturamento', message, files, copia);
+
             data.Status = Enum_StatusFaturamento.Enviado;
             data.DataEnvio = new Date();
             await strapi.entityService.update('api::faturamento.faturamento', data.id, {
-                data: data
+                data: {
+                    Status: data.Status,
+                    DataEnvio: data.DataEnvio
+                }
             });
 
-            return true
+            return true;
+        } catch (err) {
+            console.error('[Faturamento] Falha ao enviar e-mail:', err.message || err);
+            return false;
         }
-        return false;
     },
     cancelar: async (data) => {
         let faturamento = await strapi.entityService.update('api::faturamento.faturamento', data.id, {
@@ -379,7 +391,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
                 <img src="cid:logo" />
             </div>`;
     
-            email.sendMail('financeiro@nacionalhidro.com.br', 'Nacional Hidro - Cancelamento de Nota', message);
+            await email.sendMail('financeiro@nacionalhidro.com.br', 'Nacional Hidro - Cancelamento de Nota', message);
         }
         return resp
     },
