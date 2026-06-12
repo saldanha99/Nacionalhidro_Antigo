@@ -596,7 +596,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         console.log('[consultar_nfse] Resposta Focus:', req);
 
         const statusAutorizado = req.status === 'autorizado';
-        const statusFalha = req.status === 'erro' || req.status === 'cancelado' || req.status === 'denegado';
+        const statusFalha = req.status === 'erro' || req.status === 'cancelado' || req.status === 'denegado' || req.status === 'erro_autorizacao';
 
         if (statusAutorizado) {
             const updateData = {

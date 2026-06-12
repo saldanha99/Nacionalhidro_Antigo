@@ -193,7 +193,10 @@ const FaturamentoStatusFaturamento = (props) => {
   }, [props?.stateConsultarNFSe])
 
   useEffectAfterMount(() => {
-    MySwal.fire('Erro ao consultar!', props.errorConsultarNFSe?.data?.msg || 'Falha ao consultar status na Focus.', 'error')
+    if (props.errorConsultarNFSe && Object.keys(props.errorConsultarNFSe).length > 0) {
+      const msg = props.errorConsultarNFSe.msg || props.errorConsultarNFSe.data?.msg || 'Falha ao consultar status na Focus.';
+      MySwal.fire('Erro ao consultar!', msg, 'error');
+    }
   }, [props?.errorConsultarNFSe])
 
   useEffectAfterMount(() => {
