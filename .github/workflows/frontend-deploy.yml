@@ -21,4 +21,4 @@ jobs:
           script: |
             cd ${{ secrets.VPS_DEPLOY_PATH }}
             git pull origin main
-            docker-compose -f docker-compose-legacy.yml up --build -d
+            docker compose -f docker-compose-legacy.yml up --build -d
