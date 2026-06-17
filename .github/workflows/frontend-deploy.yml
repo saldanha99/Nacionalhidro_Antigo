@@ -1,53 +1,24 @@
-name: Deploy Frontend
+name: Deploy to VPS
 
 on:
   push:
     branches:
       - main
-      - staging
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
         with:
-          node-version: 14
-          cache: 'npm'
-          cache-dependency-path: nhidro.front/package-lock.json
-
-      - name: Install dependencies
-        run: |
-          cd nhidro.front
-          npm install --legacy-peer-deps
-
-      - name: Build frontend (Production)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          cd nhidro.front
-          npm run build
-
-      - name: Build frontend (Staging)
-        if: github.ref == 'refs/heads/staging'
-        run: |
-          cd nhidro.front
-          npm run build-staging
-
-      - name: Upload to Azure Blob Storage (Production)
-        if: github.ref == 'refs/heads/main'
-        uses: azure/CLI@v1
-        with:
-          inlineScript: |
-            az storage blob upload-batch --connection-string "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" -d '$web' -s ./nhidro.front/build --overwrite
-
-      - name: Upload to Azure Blob Storage (Staging)
-        if: github.ref == 'refs/heads/staging'
-        uses: azure/CLI@v1
-        with:
-          inlineScript: |
-            az storage blob upload-batch --connection-string "${{ secrets.AZURE_STORAGE_CONNECTION_STRING_STAGING }}" -d '$web' -s ./nhidro.front/build --overwrite
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            cd ${{ secrets.VPS_DEPLOY_PATH }}
+            git pull origin main
+            docker-compose -f docker-compose-legacy.yml up --build -d
