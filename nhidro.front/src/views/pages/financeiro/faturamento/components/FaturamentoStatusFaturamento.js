@@ -257,7 +257,7 @@ const FaturamentoStatusFaturamento = (props) => {
           model.DataEnvio = null
           model.DataEmissao = null
           model.UrlArquivoNota = null
-          model.Revisao = model.Revisao ? model.Revisao + 1 : 1
+          model.Revisao = data.revisao ? data.revisao + 1 : 1
           model.Status = Enum_StatusFaturamento.EmAberto
           model.StatusRecebimento = null
           props.alterarFaturamento(data.id, model);

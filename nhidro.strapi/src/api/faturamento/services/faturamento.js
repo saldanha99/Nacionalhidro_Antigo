@@ -406,7 +406,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         return entry;
     },
     buscar: async (params) => {
-        const query = `SELECT t0.id, t0.status, m0.codigo medicao, m0.revisao medicao_revisao, m0.data_cobranca, m0.data_aprovacao, t0.nota, t0.tipo_fatura, e0.descricao empresa, c0.razao_social cliente, c0.id cliente_id,
+        const query = `SELECT t0.id, t0.status, t0.revisao, m0.codigo medicao, m0.revisao medicao_revisao, m0.data_cobranca, m0.data_aprovacao, t0.nota, t0.tipo_fatura, e0.descricao empresa, c0.razao_social cliente, c0.id cliente_id,
         t0.data_vencimento, c1.nome contato, t0.data_envio, t0.valor_total, t0.valor_rateado, t0.data_emissao, t0.data_cancelamento, t0.motivo_cancelamento, t0.created_at, t0.url_arquivo_nota, c0.cnpj cliente_cnpj, 
         t0.valor_inss, t0.valor_iss, t0.valor_pis, t0.valor_cofins, t0.valor_ir, t0.valor_csll, t0.valor_liquido
         FROM faturamentos AS t0
@@ -425,7 +425,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         return resp[0]
     },
     buscar_por_cliente: async (params) => {
-        const query = `SELECT t0.id, t0.status, m0.codigo medicao, m0.revisao medicao_revisao, m0.data_cobranca, m0.data_aprovacao, t0.nota, t0.tipo_fatura, e0.descricao empresa, c0.razao_social cliente, c0.id cliente_id, 
+        const query = `SELECT t0.id, t0.status, t0.revisao, m0.codigo medicao, m0.revisao medicao_revisao, m0.data_cobranca, m0.data_aprovacao, t0.nota, t0.tipo_fatura, e0.descricao empresa, c0.razao_social cliente, c0.id cliente_id, 
         c1.nome contato, t0.data_envio, t0.valor_total, t0.valor_rateado, t0.data_emissao, t0.data_cancelamento, t0.motivo_cancelamento, t0.created_at, t0.url_arquivo_nota
         FROM faturamentos AS t0
         LEFT JOIN faturamentos_cliente_links AS t1 ON t0.id = t1.faturamento_id
@@ -628,6 +628,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         WHEN t0.status = 4 THEN 'Falha ao processar'
         WHEN t0.status = 5 THEN 'Enviado' 
         END AS status,
+        t0.revisao,
         m0.codigo medicao, m0.revisao medicao_revisao, 
         DATE_FORMAT(m0.data_criacao, '%d/%m/%Y') criacao_medicao, 
         DATE_FORMAT(m0.data_aprovacao, '%d/%m/%Y') data_aprovacao, t0.nota, t0.tipo_fatura, e0.descricao empresa, c0.razao_social cliente, c0.id cliente_id, 
