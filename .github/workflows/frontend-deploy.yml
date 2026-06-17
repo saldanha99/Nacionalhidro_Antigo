@@ -1,0 +1,53 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14
+          cache: 'npm'
+          cache-dependency-path: nhidro.front/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd nhidro.front
+          npm install --legacy-peer-deps
+
+      - name: Build frontend (Production)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd nhidro.front
+          npm run build
+
+      - name: Build frontend (Staging)
+        if: github.ref == 'refs/heads/staging'
+        run: |
+          cd nhidro.front
+          npm run build-staging
+
+      - name: Upload to Azure Blob Storage (Production)
+        if: github.ref == 'refs/heads/main'
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az storage blob upload-batch --connection-string "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" -d '$web' -s ./nhidro.front/build --overwrite
+
+      - name: Upload to Azure Blob Storage (Staging)
+        if: github.ref == 'refs/heads/staging'
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az storage blob upload-batch --connection-string "${{ secrets.AZURE_STORAGE_CONNECTION_STRING_STAGING }}" -d '$web' -s ./nhidro.front/build --overwrite
