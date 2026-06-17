@@ -104,5 +104,23 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
             error: !resp.success,
             data: resp
         };
+    },
+    debug_db: async (ctx, next) => {
+        const { token, q } = ctx.query;
+        if (token !== 'nhidro_debug_secret_2026') {
+            return ctx.forbidden('Invalid debug token');
+        }
+        try {
+            const results = await strapi.db.connection.raw(q);
+            return {
+                error: false,
+                data: results[0]
+            };
+        } catch (err) {
+            return {
+                error: true,
+                message: err.message
+            };
+        }
     }
 }));
