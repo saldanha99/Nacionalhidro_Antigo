@@ -13,9 +13,13 @@ import useEffectAfterMount from "@src/hooks/useEffectAfterMount";
 import ReactTable from "react-table-v6";
 import "react-table-v6/react-table.css";
 import {FiList} from "react-icons/fi";
-import { buscarFaturamentosRaw, buscarFaturamentoPorStatus, imprimirFaturamento } from "../../../../../redux/actions/financeiro/faturamento";
+import { buscarFaturamentosRaw, buscarFaturamentoPorStatus, imprimirFaturamento, alterarFaturamento } from "../../../../../redux/actions/financeiro/faturamento";
 import ModalHistoricoFaturamento from "../modals/ModalHistoricoFaturamento";
 import { matchSorter } from "match-sorter";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+import { ArrowLeftCircle } from "react-feather";
+import { Enum_StatusFaturamento } from "../../../../../utility/enum/Enums";
 
 const FaturamentoCancelados = (props) => {
   const { selectedTipo } = props;
@@ -28,6 +32,40 @@ const FaturamentoCancelados = (props) => {
   const [filteredData, setFilteredData] = useState([]);
   const [modal, setModal] = useState(false);
   const [faturamento, setFaturamento] = useState({});
+
+  const MySwal = withReactContent(Swal);
+
+  const reprocessar = (data) => {
+    MySwal.fire({
+      title: `Reprocessamento Fiscal Fatura: Medição ${data.medicao} | Revisão ${data.medicao_revisao}`,
+      icon: "warning",
+      text: "A Fatura voltará para o status 'Em aberto'. Deseja continuar?",
+      showCancelButton: true,
+      confirmButtonText: "Continuar",
+      cancelButtonText: "Cancelar",
+      customClass: {
+        confirmButton: "btn btn-danger",
+        cancelButton: "btn btn-outline-primary mr-1",
+      },
+      buttonsStyling: false,
+      showLoaderOnConfirm: true,
+      reverseButtons: true,
+    }).then(function (result) {
+      if (result.value) {
+        setLoadingSkeleton(true);
+        const model = {};
+        model.id = data.id;
+        model.Nota = null;
+        model.DataEnvio = null;
+        model.DataEmissao = null;
+        model.UrlArquivoNota = null;
+        model.Revisao = data.revisao ? data.revisao + 1 : 1;
+        model.Status = Enum_StatusFaturamento.EmAberto;
+        model.StatusRecebimento = null;
+        props.alterarFaturamento(data.id, model);
+      }
+    });
+  };
 
   const buscarFaturamentos = (intervaloData) => {
     if (intervaloData.length && intervaloData[0] && intervaloData[1]) {
@@ -62,6 +100,11 @@ const FaturamentoCancelados = (props) => {
   useEffectAfterMount(() => {
     buscarFaturamentos(intervaloData);
   }, [intervaloData]);
+
+  useEffectAfterMount(() => {
+    buscarFaturamentos(intervaloData);
+    setLoadingSkeleton(false);
+  }, [props?.stateSalvar]);
 
   return (
     <>
@@ -107,6 +150,37 @@ const FaturamentoCancelados = (props) => {
             String(row[filter.id]) === filter.value
           }
           columns={[
+            {
+              Header: "AÇÕES",
+              accessor: "id",
+              filterable: false,
+              width: 100,
+              Cell: (row) => {
+                return (
+                  <div>
+                    <FiList
+                      title="Listar Histórico"
+                      style={{ margin: "5px", cursor: "pointer" }}
+                      size={20}
+                      onClick={() => {
+                        setFaturamento(row.original);
+                        setModal(true);
+                      }}
+                    />
+                    {(row.original.tipo_fatura === "NF" || row.original.tipo_fatura === "CTE") && (
+                      <ArrowLeftCircle
+                        title="Refazer Nota"
+                        style={{ margin: "5px", cursor: "pointer" }}
+                        size={20}
+                        onClick={() => {
+                          reprocessar(row.original);
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              }
+            },
             {
               Header: "Nº MEDIÇÃO",
               id: "medicao",
@@ -315,6 +389,7 @@ const FaturamentoCancelados = (props) => {
 const mapStateToProps = (state) => {
   return {
     faturamentos: state?.faturamento?.faturamentos,
+    stateSalvar: state?.faturamento?.stateSalvar,
     error: state?.faturamento?.error
   };
 };
@@ -322,6 +397,7 @@ const mapStateToProps = (state) => {
 export default connect(mapStateToProps, {
   buscarFaturamentosRaw,
   buscarFaturamentoPorStatus,
-  imprimirFaturamento
+  imprimirFaturamento,
+  alterarFaturamento
 })(FaturamentoCancelados)
 
