@@ -21,19 +21,12 @@ jobs:
           script: |
             cd ${{ secrets.VPS_DEPLOY_PATH }}
             git pull origin main
-            echo "=== Docker Network Info ==="
-            docker network ls
-            if docker network inspect hidro >/dev/null 2>&1; then
-              if ! docker network inspect hidro | grep -q '"Attachable": true'; then
-                echo "Network hidro exists but is not attachable. Attempting to recreate..."
-                docker network rm hidro || echo "Could not remove network hidro (probably in use)."
-                docker network create --driver overlay --attachable hidro || true
-              else
-                echo "Network hidro is already attachable."
-              fi
-            else
-              echo "Network hidro does not exist. Creating..."
-              docker network create --driver overlay --attachable hidro || true
-            fi
-            echo "=========================="
-            docker compose -f docker-compose-legacy.yml up --build -d
+            echo "=== Docker Swarm Stacks ==="
+            docker stack ls || true
+            echo "=== Stopping any compose containers ==="
+            docker compose -f docker-compose-legacy.yml down || true
+            echo "=== Building images ==="
+            docker compose -f docker-compose-legacy.yml build
+            echo "=== Deploying Swarm Stack ==="
+            docker stack deploy -c docker-compose-legacy.yml nacionalhidro-legacy
+            echo "=== Deployment Finished ==="
