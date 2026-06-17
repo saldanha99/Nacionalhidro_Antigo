@@ -102,16 +102,6 @@ module.exports = {
           policies: [],
           middlewares: []
         }
-      },
-      {
-        method: 'GET',
-        path: '/faturamentos/debug-db',
-        handler: 'faturamento.debug_db',
-        config: {
-          auth: false,
-          policies: [],
-          middlewares: []
-        }
       }
     ],
   };
