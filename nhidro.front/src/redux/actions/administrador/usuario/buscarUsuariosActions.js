@@ -31,7 +31,8 @@ export const buscarUsuarios = () => {
 
 export const buscarVendedores = (includeAdm) => {
   const query = qs.stringify({
-    sort: ['username:asc']
+    sort: ['username:asc'],
+    populate: 'role'
   }, {
     encodeValuesOnly: true // prettify URL
   })
