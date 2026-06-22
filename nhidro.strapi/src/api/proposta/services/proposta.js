@@ -153,45 +153,62 @@ module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
         <img src="cid:logo" />
     </div>`;
 
-    if (data.Contato && data.UrlArquivo) {
-      const emails = data.EmailCopia ? data.EmailCopia.split(';') : [];
-      emails.push('bruno@nacionalhidro.com.br');
-      
-      let emailTo = '';
-      if (data.NaoEnviarEmail) {
-        emailTo = user.email;
-      } else if (data.Contato.Email) {
-        emailTo = data.Contato.Email.toLowerCase();
-        emails.push(user.email);
-      } else {
-        throw new Error('E-mail do contato não encontrado.');
-      }
+    // Contato é obrigatório para qualquer envio
+    if (!data.Contato) {
+      throw new Error('Dados insuficientes para envio: faltando Contato.');
+    }
 
-      const files = [
-        {
-          NomeArquivo: `${data.NomeArquivo || 'Proposta'}.pdf`,
-          UrlArquivo: data.UrlArquivo,
-          IsUrl: true
-        }
-      ];
-
+    // Se o PDF não foi gerado no cadastro (falha silenciosa em gerarRelatorioProposta),
+    // o UrlArquivo fica nulo e o envio quebrava com 500. Aqui regeneramos o PDF na hora
+    // do envio antes de desistir, tornando a ação auto-curável.
+    if (!data.UrlArquivo) {
+      console.warn(`[Proposta] UrlArquivo ausente na proposta ${data.Codigo} (id=${data.id}); regenerando PDF antes do envio.`);
       try {
-        console.log(`[Proposta] Enviando e-mail para ${emailTo} (Código: ${data.Codigo})`);
-        await email.sendMail(emailTo, 'Nacional Hidro - Proposta', message, files, emails);
-        
-        // Atualizar status apenas se o e-mail for enviado com sucesso
-        await strapi.entityService.update('api::proposta.proposta', data.id, {
-          data: { Enviada: true }
-        });
-        
-        return { ...data, Enviada: true };
-      } catch (err) {
-        console.error(`[Proposta] Erro ao enviar e-mail da proposta ${data.Codigo}:`, err.message || err);
-        throw new Error(`Falha no envio do e-mail: ${err.message || err}`);
+        await relatorio.gerarRelatorioProposta(data);
+      } catch (genErr) {
+        console.error(`[Proposta] Falha ao regenerar PDF da proposta ${data.Codigo}:`, genErr?.message || genErr);
       }
+    }
+
+    // Se mesmo após a tentativa de regeneração o PDF continua ausente, falha com mensagem clara.
+    if (!data.UrlArquivo) {
+      throw new Error('Não foi possível gerar o PDF da proposta. Tente reabrir a proposta, salvá-la novamente e, se persistir, contate o suporte.');
+    }
+
+    const emails = data.EmailCopia ? data.EmailCopia.split(';') : [];
+    emails.push('bruno@nacionalhidro.com.br');
+
+    let emailTo = '';
+    if (data.NaoEnviarEmail) {
+      emailTo = user.email;
+    } else if (data.Contato.Email) {
+      emailTo = data.Contato.Email.toLowerCase();
+      emails.push(user.email);
     } else {
-      const missing = !data.Contato ? 'Contato' : 'Arquivo PDF (UrlArquivo)';
-      throw new Error(`Dados insuficientes para envio: faltando ${missing}.`);
+      throw new Error('E-mail do contato não encontrado.');
+    }
+
+    const files = [
+      {
+        NomeArquivo: `${data.NomeArquivo || 'Proposta'}.pdf`,
+        UrlArquivo: data.UrlArquivo,
+        IsUrl: true
+      }
+    ];
+
+    try {
+      console.log(`[Proposta] Enviando e-mail para ${emailTo} (Código: ${data.Codigo})`);
+      await email.sendMail(emailTo, 'Nacional Hidro - Proposta', message, files, emails);
+
+      // Atualizar status apenas se o e-mail for enviado com sucesso
+      await strapi.entityService.update('api::proposta.proposta', data.id, {
+        data: { Enviada: true }
+      });
+
+      return { ...data, Enviada: true };
+    } catch (err) {
+      console.error(`[Proposta] Erro ao enviar e-mail da proposta ${data.Codigo}:`, err.message || err);
+      throw new Error(`Falha no envio do e-mail: ${err.message || err}`);
     }
   },
 }));
