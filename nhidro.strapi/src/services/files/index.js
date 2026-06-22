@@ -49,6 +49,44 @@ async function imageBase64() {
   }
 }
 
+// URL do lambda responsável por renderizar HTML -> PDF
+const PDF_LAMBDA_URL = 'https://5o55bzdct8.execute-api.sa-east-1.amazonaws.com/prod';
+
+// Chama o lambda de geração de PDF com retry, timeout e validação da resposta.
+// Retorna um Buffer do PDF. Lança erro descritivo se todas as tentativas falharem.
+async function gerarPdfViaLambda(payload, label = 'PDF', maxTentativas = 3) {
+  let ultimoErro;
+  for (let tentativa = 1; tentativa <= maxTentativas; tentativa++) {
+    try {
+      const response = await axios({
+        method: 'post',
+        url: PDF_LAMBDA_URL,
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify(payload),
+        timeout: 60000,
+      });
+      const pdfData = response.data?.pdf?.data;
+      if (!Array.isArray(pdfData) || pdfData.length === 0) {
+        throw new Error(`resposta do lambda sem dados de PDF (status ${response.status})`);
+      }
+      if (tentativa > 1) {
+        console.log(`[${label}] PDF gerado na tentativa ${tentativa}/${maxTentativas}.`);
+      }
+      return Buffer.from(pdfData);
+    } catch (error) {
+      ultimoErro = error;
+      const motivo = error?.response?.status
+        ? `HTTP ${error.response.status}`
+        : (error?.code || error?.message || error);
+      console.warn(`[${label}] Falha ao gerar PDF (tentativa ${tentativa}/${maxTentativas}): ${motivo}`);
+      if (tentativa < maxTentativas) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * tentativa)); // backoff: 1s, 2s
+      }
+    }
+  }
+  throw new Error(`Não foi possível gerar o PDF (${label}) após ${maxTentativas} tentativas: ${ultimoErro?.message || ultimoErro}`);
+}
+
 const groupBy = (list, coluna1) => {
   const mapped = {};
   list.forEach(item => {
@@ -255,18 +293,7 @@ module.exports = {
       const res = await getTemplateHtml("./templates/proposta.html");
       let rendered = mustache.render(res, view);
       rendered = rendered.replace('<script id="template" type="x-tmpl-mustache">', '<div>').replace('</script><!--remove-->', '</div>');
-      var data = JSON.stringify({"html":rendered,"header":imgHeader});
-      var config = {
-        method: 'post',
-        url: 'https://5o55bzdct8.execute-api.sa-east-1.amazonaws.com/prod',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        data : data
-      };
-  
-      const response = await axios(config)
-      const buffer = Buffer.from(response.data?.pdf?.data)
+      const buffer = await gerarPdfViaLambda({ html: rendered, header: imgHeader }, `Proposta ${proposta.Codigo}`);
       const date = new Date().getTime();
       const nomeClienteSanitizado = proposta.Cliente?.RazaoSocial?.replace(/[^a-zA-Z0-9]/g, '_') || 'cliente';
       var filename = `Proposta_${nomeClienteSanitizado}_${proposta.Codigo}_${date}.pdf`.toLowerCase();
