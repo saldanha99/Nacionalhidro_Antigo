@@ -250,10 +250,15 @@ module.exports = {
     console.log("PDF Generated")
     return {success: true, filename, path}
   },
-  gerarRelatorioProposta: async (proposta, emailVendedor) => {
-    try {
-      const cargosUnicos = proposta.PropostaEquipes.filter(x => x.Cargo.UnicoEquipamento)
-      const cargosEquipamentos = proposta.PropostaEquipes.filter(x => !x.Cargo.UnicoEquipamento)
+  // Núcleo da geração do PDF da proposta. LANÇA erro descritivo em caso de falha
+  // (para que quem chama — ex.: enviar() — possa reportar o motivo real).
+  _renderPropostaPdf: async (proposta) => {
+    if (!Array.isArray(proposta.PropostaEquipes) || !Array.isArray(proposta.PropostaEquipamentos)) {
+      throw new Error('Proposta incompleta (equipes/equipamentos ausentes) para gerar o PDF.');
+    }
+
+      const cargosUnicos = proposta.PropostaEquipes.filter(x => x.Cargo?.UnicoEquipamento)
+      const cargosEquipamentos = proposta.PropostaEquipes.filter(x => !x.Cargo?.UnicoEquipamento)
       const EquipesEquipamento = groupBy(cargosEquipamentos, 'Equipamento');
 
       const equipamentos = proposta.PropostaEquipamentos.filter((value, index) => {
@@ -301,11 +306,22 @@ module.exports = {
       proposta.NomeArquivo = filename;
       proposta.UrlArquivo = await strapi.services["api::configuracao.configuracao"].upload(buffer, filename, 'application/pdf');
 
+      if (!proposta.UrlArquivo) {
+        throw new Error('Upload do PDF retornou URL vazia (verifique armazenamento Azure/local).');
+      }
+
       await strapi.entityService.update('api::proposta.proposta', proposta.id, {
         data: proposta
       });
-  
-      console.log("PDF Generated")
+
+      console.log(`[Proposta ${proposta.Codigo}] PDF gerado e salvo.`);
+      return proposta;
+  },
+  // Wrapper tolerante: gera o PDF mas NÃO propaga falha, para que o cadastro/alteração
+  // da proposta sobreviva mesmo se o PDF falhar (o envio regenera depois).
+  gerarRelatorioProposta: async (proposta, emailVendedor) => {
+    try {
+      await module.exports._renderPropostaPdf(proposta);
     } catch (error) {
       console.error(`gerarRelatorioProposta falhou para proposta id=${proposta.id} codigo=${proposta.Codigo}:`, error?.message || error);
     }
