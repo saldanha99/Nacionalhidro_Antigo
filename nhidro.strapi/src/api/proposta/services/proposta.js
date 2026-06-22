@@ -164,15 +164,18 @@ module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
     if (!data.UrlArquivo) {
       console.warn(`[Proposta] UrlArquivo ausente na proposta ${data.Codigo} (id=${data.id}); regenerando PDF antes do envio.`);
       try {
-        await relatorio.gerarRelatorioProposta(data);
+        // Usa o núcleo estrito para que o motivo real da falha (lambda, upload, dado)
+        // seja propagado ao corpo da resposta em vez de virar um erro genérico.
+        await relatorio._renderPropostaPdf(data);
       } catch (genErr) {
         console.error(`[Proposta] Falha ao regenerar PDF da proposta ${data.Codigo}:`, genErr?.message || genErr);
+        throw new Error(`Não foi possível gerar o PDF da proposta: ${genErr?.message || genErr}`);
       }
     }
 
     // Se mesmo após a tentativa de regeneração o PDF continua ausente, falha com mensagem clara.
     if (!data.UrlArquivo) {
-      throw new Error('Não foi possível gerar o PDF da proposta. Tente reabrir a proposta, salvá-la novamente e, se persistir, contate o suporte.');
+      throw new Error('Não foi possível gerar o PDF da proposta (URL vazia após geração).');
     }
 
     const emails = data.EmailCopia ? data.EmailCopia.split(';') : [];
