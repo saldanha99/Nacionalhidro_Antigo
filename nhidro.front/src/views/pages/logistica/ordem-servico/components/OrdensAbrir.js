@@ -109,37 +109,44 @@ const OrdensAbrir = (props) => {
       },
       buttonsStyling: false,
       showLoaderOnConfirm: true,
-      reverseButtons: true
+      reverseButtons: true,
+      allowOutsideClick: () => !Swal.isLoading(),
+      preConfirm: () => {
+        if (!data.id) {
+          data.HoraInicial = moment(data.HoraInicial, "HH:mm").format("HH:mm:ss.SSS")
+          data.CriadoPor = user
+          data.DataCriacao = new Date()
+          data.HoraPadrao = data.HoraPadrao ? moment(data.HoraPadrao, "HH:mm").format("HH:mm:ss.SSS") : null
+          data.HoraTolerancia = data.HoraTolerancia ? moment(data.HoraTolerancia, "HH:mm").format("HH:mm:ss.SSS") : null
+          data.HoraEntrada = data.HoraEntrada ? moment(data.HoraEntrada, "HH:mm").format("HH:mm:ss.SSS") : null
+          data.HoraSaida = data.HoraSaida ? moment(data.HoraSaida, "HH:mm").format("HH:mm:ss.SSS") : null
+          data.HoraAlmoco = data.HoraAlmoco ? moment(data.HoraAlmoco, "HH:mm").format("HH:mm:ss.SSS") : null
+          data.HoraTotal = data.HoraTotal ? moment(data.HoraTotal, "HH:mm").format("HH:mm:ss.SSS") : null
+          data.HoraAdicional = data.HoraAdicional ? moment(data.HoraAdicional, "HH:mm").format("HH:mm:ss.SSS") : null
+          if (baixa) {
+            data.BaixadoPor = user
+            data.DataBaixa = new Date()
+            data.Status = Enum_StatusOrdens.Executada
+          }
+          if (data.DataInicial.length && (new Date(data.DataInicial[0]).getTime() !== new Date(data.DataInicial[1]).getTime())) {
+            return props.cadastrarOrdemEmLote(data)
+              .catch((err) => {
+                Swal.showValidationMessage(`Falha ao gerar ordens em lote: ${err?.message || err}`)
+              })
+          } else {
+            const dataToSave = {...data, DataInicial: moment(data.DataInicial[0]).toDate()}
+            return props.cadastrarOrdem({ data: dataToSave })
+              .catch((err) => {
+                Swal.showValidationMessage(`Falha ao gerar ordem: ${err?.message || err}`)
+              })
+          }
+        }
+      }
     })
       .then((result) => {
         if (result.value) {
           handleClose()
           setLoadingSkeleton(true)
-          if (!data.id) {
-            data.HoraInicial = moment(data.HoraInicial, "HH:mm").format("HH:mm:ss.SSS")
-            data.CriadoPor = user
-            data.DataCriacao = new Date()
-            data.HoraPadrao = data.HoraPadrao ? moment(data.HoraPadrao, "HH:mm").format("HH:mm:ss.SSS") : null
-            data.HoraTolerancia = data.HoraTolerancia ? moment(data.HoraTolerancia, "HH:mm").format("HH:mm:ss.SSS") : null
-            data.HoraEntrada = data.HoraEntrada ? moment(data.HoraEntrada, "HH:mm").format("HH:mm:ss.SSS") : null
-            data.HoraSaida = data.HoraSaida ? moment(data.HoraSaida, "HH:mm").format("HH:mm:ss.SSS") : null
-            data.HoraAlmoco = data.HoraAlmoco ? moment(data.HoraAlmoco, "HH:mm").format("HH:mm:ss.SSS") : null
-            data.HoraTotal = data.HoraTotal ? moment(data.HoraTotal, "HH:mm").format("HH:mm:ss.SSS") : null
-            data.HoraAdicional = data.HoraAdicional ? moment(data.HoraAdicional, "HH:mm").format("HH:mm:ss.SSS") : null
-            if (baixa) {
-              data.BaixadoPor = user
-              data.DataBaixa = new Date()
-              data.Status = Enum_StatusOrdens.Executada
-            }
-            if (data.DataInicial.length && (new Date(data.DataInicial[0]).getTime() !== new Date(data.DataInicial[1]).getTime())) {
-              MySwal.fire('', 'Você está gerando Ordens em lote, isso poderá levar alguns minutos.', 'info')
-              props.cadastrarOrdemEmLote(data)
-            } else {
-              data.DataInicial = moment(data.DataInicial[0]).toDate()
-              props.cadastrarOrdem({ data })
-            }
-            setModal(false)
-          }
         }
       })
   }

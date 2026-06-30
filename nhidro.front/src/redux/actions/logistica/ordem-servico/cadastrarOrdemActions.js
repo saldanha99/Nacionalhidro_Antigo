@@ -19,7 +19,7 @@ export const cadastrarOrdem = (model) => {
         numero++
       }
 
-      Promise.all(promises).then(() => {
+      return Promise.all(promises).then(() => {
         dispatch({
           type: "SALVAR_ORDEM_SERVICO",
           payload: model
@@ -30,20 +30,25 @@ export const cadastrarOrdem = (model) => {
           type: "SALVAR_ORDEM_SERVICO_ERROR",
           payload: model
         })
+        throw error
       })
     } else {
-      api.post("/api/ordem-servicos/cadastrar", model, function (status, data) {
-        if (status === 200) {
-          dispatch({
-            type: "SALVAR_ORDEM_SERVICO",
-            payload: data
-          })
-        } else {
-          dispatch({
-            type: "SALVAR_ORDEM_SERVICO_ERROR",
-            payload: data
-          })
-        }
+      return new Promise((resolve, reject) => {
+        api.post("/api/ordem-servicos/cadastrar", model, function (status, data) {
+          if (status === 200) {
+            dispatch({
+              type: "SALVAR_ORDEM_SERVICO",
+              payload: data
+            })
+            resolve(data)
+          } else {
+            dispatch({
+              type: "SALVAR_ORDEM_SERVICO_ERROR",
+              payload: data
+            })
+            reject(data)
+          }
+        })
       })
     }
   }
@@ -51,13 +56,14 @@ export const cadastrarOrdem = (model) => {
 export const cadastrarOrdemEmLote = (model) => {
   return (dispatch) => {
     try {
-      const date = model.DataInicial[0]
+      const date = new Date(model.DataInicial[0])
+      const endDate = new Date(model.DataInicial[1])
       const promises = []
       let numero = model.Numero
   
-      while (date <= model.DataInicial[1]) {
+      while (date <= endDate) {
         const data = JSON.parse(JSON.stringify(model))                    
-        data.DataInicial = moment(date).toDate()
+        data.DataInicial = new Date(date)
         data.Numero = numero
         delete data.DiasSemana
         const day = moment(data.DataInicial).day()
@@ -85,7 +91,7 @@ export const cadastrarOrdemEmLote = (model) => {
         }
         date.setDate(date.getDate() + 1)
       }
-      Promise.all(promises).then(() => {
+      return Promise.all(promises).then(() => {
         dispatch({
           type: "SALVAR_ORDEM_SERVICO",
           payload: model
@@ -96,12 +102,14 @@ export const cadastrarOrdemEmLote = (model) => {
           type: "SALVAR_ORDEM_SERVICO_ERROR",
           payload: model
         })
+        throw error
       })
     } catch (error) {
       dispatch({
         type: "SALVAR_ORDEM_SERVICO_ERROR",
         payload: model
       })
+      return Promise.reject(error)
     }
   }
 }
