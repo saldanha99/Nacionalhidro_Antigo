@@ -63,7 +63,21 @@ const PropostasAprovadas = (props) => {
   }, [props?.isFinishedAction])
 
   useEffectAfterMount(() => {
-    handleToastError()
+    if (props?.error) {
+      let errorMsg = "Falha ao processar a requisição."
+      if (typeof props.error === 'string') {
+        errorMsg = props.error
+      } else if (props.error.error?.message) {
+        errorMsg = props.error.error.message
+      } else if (props.error.message) {
+        errorMsg = props.error.message
+      } else if (props.error.data?.error?.message) {
+        errorMsg = props.error.data.error.message
+      }
+      handleToastError(errorMsg)
+    } else {
+      handleToastError()
+    }
     props.buscarPropostas(Enum_StatusPropostas.Aprovada, user)
   }, [props?.error])
 
@@ -78,11 +92,11 @@ const PropostasAprovadas = (props) => {
     )
   }
 
-  const handleToastError = () => {
+  const handleToastError = (messageBody) => {
     toast.error(
       <ToastContent
         messageTitle="Proposta"
-        messageBody="Falha ao salvar!"
+        messageBody={messageBody || "Falha ao salvar!"}
         color="orange"
       />,
       { transition: Slide, autoClose: 10000 }
