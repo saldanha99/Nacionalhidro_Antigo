@@ -95,7 +95,13 @@ const OrdensAbrir = (props) => {
     setIntervaloData(dateValue)
   }
 
+  const isSavingRef = useRef(false)
+  const isRequestingRef = useRef(false)
+
   const save = (data, baixa) => {
+    if (isSavingRef.current) return
+    isSavingRef.current = true
+
     MySwal.fire({
       title: "Aviso",
       text: !baixa ? "Tem certeza que deseja salvar a OS?" : "Tem certeza que deseja baixar a OS?",
@@ -112,6 +118,11 @@ const OrdensAbrir = (props) => {
       reverseButtons: true,
       allowOutsideClick: () => !Swal.isLoading(),
       preConfirm: () => {
+        if (isRequestingRef.current) {
+          return false
+        }
+        isRequestingRef.current = true
+
         if (!data.id) {
           data.HoraInicial = moment(data.HoraInicial, "HH:mm").format("HH:mm:ss.SSS")
           data.CriadoPor = user
@@ -130,16 +141,35 @@ const OrdensAbrir = (props) => {
           }
           if (data.DataInicial.length && (new Date(data.DataInicial[0]).getTime() !== new Date(data.DataInicial[1]).getTime())) {
             return props.cadastrarOrdemEmLote(data)
+              .then((res) => {
+                isRequestingRef.current = false
+                isSavingRef.current = false
+                return res
+              })
               .catch((err) => {
+                isRequestingRef.current = false
+                isSavingRef.current = false
                 Swal.showValidationMessage(`Falha ao gerar ordens em lote: ${err?.message || err}`)
+                throw err
               })
           } else {
             const dataToSave = {...data, DataInicial: moment(data.DataInicial[0]).toDate()}
             return props.cadastrarOrdem({ data: dataToSave })
+              .then((res) => {
+                isRequestingRef.current = false
+                isSavingRef.current = false
+                return res
+              })
               .catch((err) => {
+                isRequestingRef.current = false
+                isSavingRef.current = false
                 Swal.showValidationMessage(`Falha ao gerar ordem: ${err?.message || err}`)
+                throw err
               })
           }
+        } else {
+          isRequestingRef.current = false
+          isSavingRef.current = false
         }
       }
     })
@@ -147,7 +177,12 @@ const OrdensAbrir = (props) => {
         if (result.value) {
           handleClose()
           setLoadingSkeleton(true)
+        } else {
+          isSavingRef.current = false
         }
+      })
+      .catch(() => {
+        isSavingRef.current = false
       })
   }
     
