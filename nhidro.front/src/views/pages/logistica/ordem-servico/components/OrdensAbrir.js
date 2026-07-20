@@ -32,8 +32,8 @@ const user = auth.getUserInfo()
 const OrdensAbrir = (props) => {
   const refComp = useRef(null)
 
-  const mesPassado = new Date(new Date().setMonth(new Date().getMonth() - 4))
-  const mesQuevem = new Date(new Date().setMonth(new Date().getMonth() + 4))
+  const mesPassado = new Date(new Date().setMonth(new Date().getMonth() - 1))
+  const mesQuevem = new Date(new Date().setMonth(new Date().getMonth() + 1))
 
   const { selectedTipo } = props
   const [loadingSkeleton, setLoadingSkeleton] = useState(true)

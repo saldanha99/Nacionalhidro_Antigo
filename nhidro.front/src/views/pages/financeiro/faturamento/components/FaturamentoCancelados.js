@@ -59,6 +59,8 @@ const FaturamentoCancelados = (props) => {
         model.DataEnvio = null;
         model.DataEmissao = null;
         model.UrlArquivoNota = null;
+        model.MotivoCancelamento = null;
+        model.DataCancelamento = null;
         model.Revisao = data.revisao ? data.revisao + 1 : 1;
         model.Status = Enum_StatusFaturamento.EmAberto;
         model.StatusRecebimento = null;
@@ -167,8 +169,7 @@ const FaturamentoCancelados = (props) => {
                         setModal(true);
                       }}
                     />
-                    {(row.original.tipo_fatura === "NF" || row.original.tipo_fatura === "CTE") && (
-                      <ArrowLeftCircle
+                    <ArrowLeftCircle
                         title="Refazer Nota"
                         style={{ margin: "5px", cursor: "pointer" }}
                         size={20}
@@ -176,7 +177,6 @@ const FaturamentoCancelados = (props) => {
                           reprocessar(row.original);
                         }}
                       />
-                    )}
                   </div>
                 );
               }

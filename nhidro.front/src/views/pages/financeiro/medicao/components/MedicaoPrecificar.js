@@ -39,7 +39,7 @@ const MySwal = withReactContent(Swal)
 const MedicaoPrecificar = (props) => {
   const { selectedTipo, empresas } = props;
 
-  const mesPassado = new Date(new Date().setMonth(new Date().getMonth() - 8));
+  const mesPassado = new Date(new Date().setMonth(new Date().getMonth() - 1));
   const mesQuevem = new Date(new Date().setMonth(new Date().getMonth() + 1));
 
   const [loadingSkeleton, setLoadingSkeleton] = useState(true);

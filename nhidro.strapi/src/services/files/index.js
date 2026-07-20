@@ -9,6 +9,7 @@ const { formatNumberReal, minTommss } = require("../../../utils/functions");
 const { Enum_RegimeTributario, Enum_TipoResponsabilidade } = require("../../../utils/enums");
 const axios = require('axios').default;
 const _ = require('lodash');
+const sharp = require('sharp');
 
 function compararPorData(a, b) {
   const dataA = moment(a.DataInicial, 'DD/MM/YYYY');
@@ -46,6 +47,57 @@ async function imageBase64() {
       }
     } catch (e) { /* ignore */ }
     return '';
+  }
+}
+
+async function getAssinaturaBase64(url) {
+  if (!url) return '';
+  try {
+    // 1. Tentar ler do filesystem local (se a imagem for do Strapi local)
+    const urlParts = url.split('/');
+    const filename = urlParts[urlParts.length - 1];
+    const localPath = path.resolve("./public/uploads/", filename);
+    
+    if (fs.existsSync(localPath)) {
+      let dataBuffer = fs.readFileSync(localPath);
+      if (dataBuffer.length > 50 * 1024) {
+        try {
+          dataBuffer = await sharp(dataBuffer)
+            .resize({ width: 300 })
+            .png({ quality: 80, compressionLevel: 8 })
+            .toBuffer();
+        } catch (sharpError) {
+          console.warn(`[Proposta] Falha ao comprimir imagem local com sharp:`, sharpError.message);
+        }
+      }
+      let ext = 'png';
+      if (filename.toLowerCase().endsWith('.jpg') || filename.toLowerCase().endsWith('.jpeg')) {
+        ext = 'jpeg';
+      }
+      return `data:image/${ext};base64,${dataBuffer.toString('base64')}`;
+    }
+    
+    // 2. Fallback: baixar via axios caso não exista localmente (ex: Azure Blob)
+    const image = await axios.get(url, { responseType: 'arraybuffer' });
+    let dataBuffer = Buffer.from(image.data);
+    if (dataBuffer.length > 50 * 1024) {
+      try {
+        dataBuffer = await sharp(dataBuffer)
+          .resize({ width: 300 })
+          .png({ quality: 80, compressionLevel: 8 })
+          .toBuffer();
+      } catch (sharpError) {
+        console.warn(`[Proposta] Falha ao comprimir imagem remota com sharp:`, sharpError.message);
+      }
+    }
+    let ext = 'png';
+    if (url.toLowerCase().endsWith('.jpg') || url.toLowerCase().endsWith('.jpeg')) {
+      ext = 'jpeg';
+    }
+    return `data:image/${ext};base64,${dataBuffer.toString('base64')}`;
+  } catch (error) {
+    console.warn(`[Proposta] Não foi possível converter a assinatura para base64:`, error.message || error);
+    return url;
   }
 }
 
@@ -292,7 +344,7 @@ module.exports = {
         CondicaoPagamento: proposta.CondicaoPagamento?.replace(/\n/g, "<br />"),
         ValidadeProposta: proposta.ValidadeProposta?.replace(/\n/g, "<br />"),
         Vendedor: proposta.Vendedor?.Nome,
-        Assinatura: proposta.Usuario?.urlSignature || ''
+        Assinatura: proposta.Usuario?.urlSignature ? await getAssinaturaBase64(proposta.Usuario.urlSignature) : ''
       }
       const imgHeader = await imageBase64();
       const res = await getTemplateHtml("./templates/proposta.html");
