@@ -38,6 +38,9 @@ services:
       ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
       API_TOKEN_SALT: ${API_TOKEN_SALT}
       TRANSFER_TOKEN_SALT: ${TRANSFER_TOKEN_SALT}
+      SMTP_USER: ${SMTP_USER:-sistema@nacionalhidro.com.br}
+      SMTP_PASS: ${SMTP_PASS:-zvzihtqkhosgzpbk}
+      EMAIL_FROM: ${EMAIL_FROM:-Sistema Nacional Hidro <sistema@nacionalhidro.com.br>}
       NODE_ENV: production
     ports:
       - "1337:1337"

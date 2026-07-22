@@ -139,6 +139,50 @@ module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
     }
   },
   enviar: async (data, user) => {
+    let propostaCompleta = { ...data };
+
+    // Auto-heal: se data.id existir, buscar o registro completo do banco com todas as relações
+    if (data?.id) {
+      try {
+        const dbProposta = await strapi.entityService.findOne("api::proposta.proposta", data.id, {
+          populate: [
+            "Acessorios",
+            "Cliente.Contatos",
+            "Contato",
+            "Usuario",
+            "PropostaEquipes.Cargo",
+            "PropostaEquipes.Equipamento",
+            "PropostaEquipamentos.Equipamento.Veiculos",
+            "PropostaResponsabilidades.Responsabilidade",
+            "Empresa",
+            "Vendedor"
+          ]
+        });
+        if (dbProposta) {
+          propostaCompleta = {
+            ...dbProposta,
+            ...data,
+            Contato: dbProposta.Contato || data.Contato,
+            Cliente: dbProposta.Cliente || data.Cliente,
+            PropostaEquipes: dbProposta.PropostaEquipes || data.PropostaEquipes,
+            PropostaEquipamentos: dbProposta.PropostaEquipamentos || data.PropostaEquipamentos,
+            PropostaResponsabilidades: dbProposta.PropostaResponsabilidades || data.PropostaResponsabilidades,
+            Usuario: dbProposta.Usuario || data.Usuario,
+            Empresa: dbProposta.Empresa || data.Empresa,
+            Vendedor: dbProposta.Vendedor || data.Vendedor
+          };
+          if (!propostaCompleta.UrlArquivo && dbProposta.UrlArquivo) {
+            propostaCompleta.UrlArquivo = dbProposta.UrlArquivo;
+          }
+          if (!propostaCompleta.NomeArquivo && dbProposta.NomeArquivo) {
+            propostaCompleta.NomeArquivo = dbProposta.NomeArquivo;
+          }
+        }
+      } catch (dbErr) {
+        console.warn(`[Proposta] Aviso: Não foi possível buscar proposta ${data.id} completa no banco:`, dbErr?.message || dbErr);
+      }
+    }
+
     const message = `
     <div
       class="container"
@@ -154,63 +198,69 @@ module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
     </div>`;
 
     // Contato é obrigatório para qualquer envio
-    if (!data.Contato) {
+    if (!propostaCompleta.Contato) {
       throw new Error('Dados insuficientes para envio: faltando Contato.');
     }
 
-    // Se o PDF não foi gerado no cadastro (falha silenciosa em gerarRelatorioProposta),
-    // o UrlArquivo fica nulo e o envio quebrava com 500. Aqui regeneramos o PDF na hora
-    // do envio antes de desistir, tornando a ação auto-curável.
-    if (!data.UrlArquivo) {
-      console.warn(`[Proposta] UrlArquivo ausente na proposta ${data.Codigo} (id=${data.id}); regenerando PDF antes do envio.`);
+    // Se o PDF não foi gerado no cadastro, regeneramos o PDF antes do envio
+    if (!propostaCompleta.UrlArquivo) {
+      console.warn(`[Proposta] UrlArquivo ausente na proposta ${propostaCompleta.Codigo} (id=${propostaCompleta.id}); regenerando PDF antes do envio.`);
       try {
-        // Usa o núcleo estrito para que o motivo real da falha (lambda, upload, dado)
-        // seja propagado ao corpo da resposta em vez de virar um erro genérico.
-        await relatorio._renderPropostaPdf(data);
+        await relatorio._renderPropostaPdf(propostaCompleta);
       } catch (genErr) {
-        console.error(`[Proposta] Falha ao regenerar PDF da proposta ${data.Codigo}:`, genErr?.message || genErr);
+        console.error(`[Proposta] Falha ao regenerar PDF da proposta ${propostaCompleta.Codigo}:`, genErr?.message || genErr);
         throw new Error(`Não foi possível gerar o PDF da proposta: ${genErr?.message || genErr}`);
       }
     }
 
-    // Se mesmo após a tentativa de regeneração o PDF continua ausente, falha com mensagem clara.
-    if (!data.UrlArquivo) {
+    if (!propostaCompleta.UrlArquivo) {
       throw new Error('Não foi possível gerar o PDF da proposta (URL vazia após geração).');
     }
 
-    const emails = data.EmailCopia ? data.EmailCopia.split(';') : [];
-    emails.push('bruno@nacionalhidro.com.br');
+    const emails = (propostaCompleta.EmailCopia ? propostaCompleta.EmailCopia.split(';') : [])
+      .map(e => (typeof e === 'string' ? e.trim() : ''))
+      .filter(Boolean);
+
+    if (!emails.includes('bruno@nacionalhidro.com.br')) {
+      emails.push('bruno@nacionalhidro.com.br');
+    }
 
     let emailTo = '';
-    if (data.NaoEnviarEmail) {
-      emailTo = user.email;
-    } else if (data.Contato.Email) {
-      emailTo = data.Contato.Email.toLowerCase();
-      emails.push(user.email);
+    if (propostaCompleta.NaoEnviarEmail) {
+      emailTo = user?.email || propostaCompleta.Usuario?.email;
+    } else if (propostaCompleta.Contato?.Email) {
+      emailTo = propostaCompleta.Contato.Email.toLowerCase().trim();
+      if (user?.email && !emails.includes(user.email.trim())) {
+        emails.push(user.email.trim());
+      }
     } else {
-      throw new Error('E-mail do contato não encontrado.');
+      throw new Error('E-mail do contato não encontrado. Verifique se o contato da proposta tem um e-mail cadastrado.');
+    }
+
+    if (!emailTo) {
+      throw new Error('Endereço de e-mail de destino não foi definido.');
     }
 
     const files = [
       {
-        NomeArquivo: `${data.NomeArquivo || 'Proposta'}.pdf`,
-        UrlArquivo: data.UrlArquivo,
+        NomeArquivo: `${propostaCompleta.NomeArquivo || 'Proposta'}.pdf`,
+        UrlArquivo: propostaCompleta.UrlArquivo,
         IsUrl: true
       }
     ];
 
     try {
-      console.log(`[Proposta] Enviando e-mail para ${emailTo} (Código: ${data.Codigo})`);
+      console.log(`[Proposta] Enviando e-mail para ${emailTo} (Código: ${propostaCompleta.Codigo})`);
       await email.sendMail(emailTo, 'Nacional Hidro - Proposta', message, files, emails);
 
       // Atualizar status apenas se o e-mail for enviado com sucesso
-      await strapi.entityService.update('api::proposta.proposta', data.id, {
+      await strapi.entityService.update('api::proposta.proposta', propostaCompleta.id, {
         data: { Enviada: true }
       });
 
-      return { ...data, Enviada: true };
+      return { ...propostaCompleta, Enviada: true };
     } catch (err) {
-      console.error(`[Proposta] Erro ao enviar e-mail da proposta ${data.Codigo}:`, err.message || err);
+      console.error(`[Proposta] Erro ao enviar e-mail da proposta ${propostaCompleta.Codigo}:`, err.message || err);
       throw new Error(`Falha no envio do e-mail: ${err.message || err}`);
     }
   },
