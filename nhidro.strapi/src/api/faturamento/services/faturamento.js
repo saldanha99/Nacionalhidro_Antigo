@@ -10,6 +10,17 @@ const request = require('request');
  * faturamento service.
  */
 
+const cleanEmptyFields = (obj) => {
+    if (typeof obj !== 'object' || obj === null) return;
+    for (const key of Object.keys(obj)) {
+        if (typeof obj[key] === 'string' && obj[key].trim() === '') {
+            delete obj[key];
+        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+            cleanEmptyFields(obj[key]);
+        }
+    }
+};
+
 const nfse = async (faturamento, cliente) => {
     const api = await strapi.db.query("api::configuracao.configuracao").findOne({
         where: {
@@ -25,6 +36,7 @@ const nfse = async (faturamento, cliente) => {
     delete body.EmpresaBanco;
     delete body.data_vencimento;
     delete body.data_emissao_aux;
+    cleanEmptyFields(body);
     body.natureza_operacao = body.tomador.endereco.codigo_municipio === body.prestador.codigo_municipio ? '1' : '2';
     body.servico.valor_servicos = body.itens.reduce((total, item) => total + item.valor_total, 0);
     body.servico.iss_retido = 1;
@@ -523,6 +535,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         delete data.EmpresaBanco;
         delete data.data_vencimento;
         delete data.data_emissao_aux;
+        cleanEmptyFields(data);
 
         // data.tomador.inscricao_municipal = "000664332"
 

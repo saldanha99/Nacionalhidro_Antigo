@@ -482,6 +482,8 @@ const ModalCliente = (props) => {
       data.PorcentagemRL = data.PorcentagemRL * 100
       setRazaoIsValid([])
       setCnpj(data.Cnpj)
+      setCnpjExiste(false)
+      setCnpjIsValid(true)
       setRazaoSocial(data.RazaoSocial)
       setModelCliente(data)
     }
@@ -1098,7 +1100,10 @@ const ModalCliente = (props) => {
                         format="cpf"
                         value={modelCliente.Cpf}
                         disabled={modelCliente.id}
-                        onChange={(e) => setModelCliente({ ...modelCliente, [e.target.name]: e.target.value.toUpperCase() })}
+                        onChange={(e) => {
+                          setCnpjExiste(false)
+                          setModelCliente({ ...modelCliente, [e.target.name]: e.target.value.toUpperCase() })
+                        }}
                         onBlur={e => { 
                             if (e.target.value !== cnpj) validarCliente(e.target.value, false) 
                             else setCnpjIsValid(true)
@@ -1130,7 +1135,10 @@ const ModalCliente = (props) => {
                         placeholder="Cnpj"
                         value={modelCliente?.Cnpj}
                         disabled={modelCliente.id}
-                        onChange={(e) => setModelCliente({ ...modelCliente, [e.target.name]: e.target.value.toUpperCase() })}
+                        onChange={(e) => {
+                          setCnpjExiste(false)
+                          setModelCliente({ ...modelCliente, [e.target.name]: e.target.value.toUpperCase() })
+                        }}
                         onBlur={e => { 
                             if (e.target.value !== cnpj) validarCliente(e.target.value, true) 
                             else setCnpjIsValid(true)

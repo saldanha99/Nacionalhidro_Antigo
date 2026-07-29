@@ -110,11 +110,14 @@ async function gerarPdfViaLambda(payload, label = 'PDF', maxTentativas = 3) {
   let ultimoErro;
   for (let tentativa = 1; tentativa <= maxTentativas; tentativa++) {
     try {
+      // Se a primeira tentativa falhar (ex: HTTP 502/413 devido a header base64 volumoso),
+      // tenta enviar apenas { html: payload.html } pois a imagem de cabeçalho já está na URL da Azure no template HTML.
+      const currentPayload = (tentativa > 1 && payload.header) ? { html: payload.html } : payload;
       const response = await axios({
         method: 'post',
         url: PDF_LAMBDA_URL,
         headers: { 'Content-Type': 'application/json' },
-        data: JSON.stringify(payload),
+        data: JSON.stringify(currentPayload),
         timeout: 60000,
       });
       const pdfData = response.data?.pdf?.data;
