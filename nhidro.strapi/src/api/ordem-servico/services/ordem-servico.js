@@ -206,6 +206,23 @@ module.exports = createCoreService(
   "api::ordem-servico.ordem-servico",
   ({ strapi }) => ({
     cadastrar: async (data) => {
+      if (data.Codigo && data.Numero) {
+        const existing = await strapi.entityService.findMany(
+          "api::ordem-servico.ordem-servico",
+          {
+            filters: {
+              Codigo: data.Codigo,
+              Numero: data.Numero,
+            },
+            limit: 1,
+          }
+        );
+        if (existing && existing.length > 0) {
+          console.warn(`[OrdemServico] OS com Código ${data.Codigo} e Número ${data.Numero} já existe (id=${existing[0].id}). Ignorando requisição duplicada.`);
+          return null;
+        }
+      }
+
       let escala = data.Escala;
       delete data.Escala;
       let servicos = data.Servicos;
