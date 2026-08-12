@@ -15,6 +15,32 @@ const {
   Enum_StatusPrecificacao,
   Enum_StatusMedicao,
 } = require("../../../../utils/enums");
+const {
+  ehErroOrdemDuplicada,
+} = require("../../../../utils/ordem-servico-duplicidade");
+
+const buscarOrdemExistente = async (strapi, codigo, numero) => {
+  const existentes = await strapi.entityService.findMany(
+    "api::ordem-servico.ordem-servico",
+    {
+      filters: {
+        Codigo: codigo,
+        Numero: numero,
+      },
+      limit: 1,
+    }
+  );
+
+  return existentes?.[0] || null;
+};
+
+const registrarOrdemDuplicada = (data, existente) => {
+  console.warn(
+    `[OrdemServico] OS com Código ${data.Codigo} e Número ${data.Numero} ` +
+    `já existe${existente?.id ? ` (id=${existente.id})` : ""}. ` +
+    "Ignorando requisição duplicada."
+  );
+};
 
 const salvarDados = async (ordem) => {
   let escala = ordem.Escala;
@@ -206,19 +232,16 @@ module.exports = createCoreService(
   "api::ordem-servico.ordem-servico",
   ({ strapi }) => ({
     cadastrar: async (data) => {
-      if (data.Codigo && data.Numero) {
-        const existing = await strapi.entityService.findMany(
-          "api::ordem-servico.ordem-servico",
-          {
-            filters: {
-              Codigo: data.Codigo,
-              Numero: data.Numero,
-            },
-            limit: 1,
-          }
+      const possuiIdentificacao = data.Codigo != null && data.Numero != null;
+
+      if (possuiIdentificacao) {
+        const existente = await buscarOrdemExistente(
+          strapi,
+          data.Codigo,
+          data.Numero
         );
-        if (existing && existing.length > 0) {
-          console.warn(`[OrdemServico] OS com Código ${data.Codigo} e Número ${data.Numero} já existe (id=${existing[0].id}). Ignorando requisição duplicada.`);
+        if (existente) {
+          registrarOrdemDuplicada(data, existente);
           return null;
         }
       }
@@ -228,12 +251,25 @@ module.exports = createCoreService(
       let servicos = data.Servicos;
       delete data.Servicos;
 
-      const entry = await strapi.entityService.create(
-        "api::ordem-servico.ordem-servico",
-        {
-          data: data,
-        }
-      );
+      let entry;
+      try {
+        entry = await strapi.entityService.create(
+          "api::ordem-servico.ordem-servico",
+          {
+            data: data,
+          }
+        );
+      } catch (error) {
+        if (!possuiIdentificacao || !ehErroOrdemDuplicada(error)) throw error;
+
+        const existente = await buscarOrdemExistente(
+          strapi,
+          data.Codigo,
+          data.Numero
+        );
+        registrarOrdemDuplicada(data, existente);
+        return null;
+      }
 
       entry.Escala = escala;
       entry.Empresa = data.Empresa;
