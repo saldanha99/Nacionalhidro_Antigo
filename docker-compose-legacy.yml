@@ -19,7 +19,7 @@ services:
     build:
       context: ./nhidro.strapi
       dockerfile: Dockerfile
-    image: nacionalhidro-legacy-backend:latest
+    image: nacionalhidro-legacy-backend:v1.1
     restart: always
     environment:
       DATABASE_HOST: db-legacy
@@ -43,6 +43,8 @@ services:
       - internal
       - hidro
     deploy:
+      update_config:
+        order: start-first
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.nh-legacy-api.rule=Host(`${API_SUBDOMAIN:-apivps.nacionalhidro.com.br}`)"
@@ -55,7 +57,7 @@ services:
     build: 
       context: ./nhidro.front
       dockerfile: Dockerfile
-    image: nacionalhidro-legacy-frontend:latest
+    image: nacionalhidro-legacy-frontend:v1.1
     restart: always
     environment:
       REACT_APP_BACKEND_URL: https://${API_SUBDOMAIN:-apivps.nacionalhidro.com.br}/
@@ -63,6 +65,8 @@ services:
     networks:
       - hidro
     deploy:
+      update_config:
+        order: start-first
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.nh-legacy-front.rule=Host(`${FRONT_SUBDOMAIN:-vps.nacionalhidro.com.br}`)"
