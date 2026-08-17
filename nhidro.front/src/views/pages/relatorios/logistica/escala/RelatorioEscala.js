@@ -97,17 +97,30 @@ const RelatorioEscala = (props) => {
   }
 
   const handleFiltrarBtn = (relatorio, intervaloData, empresa) => {
-    if (intervaloData.length && intervaloData[0] && intervaloData[1]) {
+    const d1 = intervaloData?.[0]
+    const d2 = intervaloData?.[1] || d1
+    if (d1 && d2) {
       setColumns(getHeader(relatorio))
-      if (relatorio === 'relatorio-simplificado') props.buscarEscalasRelatorio(intervaloData[0], intervaloData[1])
-      else props.buscarEscalasRelatorio(intervaloData[0], intervaloData[1], empresa, true)
+      if (relatorio === 'relatorio-simplificado') props.buscarEscalasRelatorio(d1, d2)
+      else props.buscarEscalasRelatorio(d1, d2, empresa, true)
       setFilteredReactTable([])
       setLoadingSkeleton(true)
     }
   }
 
   const handlerFiltroData = (dateValue) => {
-    setIntervaloData(dateValue)
+    if (dateValue.length === 2 || dateValue.length === 0) {
+      setIntervaloData(dateValue)
+    }
+  }
+
+  const handleCloseFlatpickr = (selectedDates, dateStr, instance) => {
+    if (selectedDates.length === 1) {
+      instance.setDate([selectedDates[0], selectedDates[0]], false)
+      setIntervaloData([selectedDates[0], selectedDates[0]])
+    } else if (selectedDates.length === 2) {
+      setIntervaloData(selectedDates)
+    }
   }
 
   useEffect(() => {
@@ -170,14 +183,10 @@ const RelatorioEscala = (props) => {
               <Flatpickr
                 value={intervaloData}
                 onChange={date => handlerFiltroData(date)}
-                onClose={ (selectedDates, dateStr, instance) => {
-                  if (selectedDates.length === 1) {
-                      instance.setDate([selectedDates[0], selectedDates[0]], true)
-                  }
-                }}
+                onClose={handleCloseFlatpickr}
                 className="form-control"
                 style={{ backgroundColor: "#fff" }}
-                options={{ mode: 'range', locale: Portuguese, dateFormat: 'd-m-Y'  }}
+                options={{ mode: 'range', locale: Portuguese, dateFormat: 'd-m-Y' }}
                 name="filtroData"
                 placeholder="Intervalo de datas"
                 ref={refComp}
