@@ -122,6 +122,10 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
       filters: {
         $and: filterConditions
       },
+      pagination: {
+        limit: 10000,
+        pageSize: 10000
+      },
       sort: {
         Data: 'asc'
       },
