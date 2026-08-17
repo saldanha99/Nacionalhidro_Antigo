@@ -90,25 +90,30 @@ export const buscarEscalasOrdens = (data1, data2) => {
 }
 export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) => {
   const populate = porFuncionario ? ['Cliente', 'Empresa', 'EscalaFuncionarios.Funcionario'] : ['OrdemServico', 'Cliente', 'Equipamento', 'EscalaVeiculos.Veiculo', 'EscalaFuncionarios.Funcionario.Cargo', 'Empresa']
+  
+  const d1 = moment(data1).format('YYYY-MM-DD')
+  const d2 = moment(data2).format('YYYY-MM-DD')
+
+  const filterConditions = [
+    {
+      Data: {
+        $between: [d1, d2]
+      }
+    }
+  ]
+
+  if (porFuncionario && empresa) {
+    filterConditions.push({
+      Empresa: {
+        id: empresa
+      }
+    })
+  }
+
   const query = qs.stringify(
     {
-      filters: porFuncionario ? {
-        $and: [
-          {
-            Data: {
-              $between: [data1, data2]
-            }
-          },
-          {
-            Empresa: {
-              id: empresa
-            }
-          }
-        ]
-      } : {
-        Data: {
-          $between: [data1, data2]
-        }
+      filters: {
+        $and: filterConditions
       },
       sort: {
         Data: 'asc'
@@ -125,33 +130,33 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
         const normalizado = normalize(data)
         const dados = []
         if (porFuncionario) {
-          for (const x of normalizado.filter(f => f.Cliente?.id)) {
-            for (const ef of x.EscalaFuncionarios.filter(f => !f.Ausente)) {
-              if (ef.StatusOperacao !== 1 && ef.StatusOperacao !== 2) { //Ferias e Atestado
+          for (const x of (normalizado || []).filter(f => f?.Cliente?.id)) {
+            for (const ef of (x?.EscalaFuncionarios || []).filter(f => !f?.Ausente)) {
+              if (ef?.StatusOperacao !== 1 && ef?.StatusOperacao !== 2) { //Ferias e Atestado
                 dados.push({
                   id: x.id,
-                  Data: moment(x.Data).local().format('DD/MM/YYYY'),
-                  Cliente: x.Cliente?.RazaoSocial,
-                  Cnpj: x.Cliente?.Cnpj,
-                  Funcionario: ef.Funcionario.Nome
+                  Data: x.Data ? moment(x.Data).local().format('DD/MM/YYYY') : '-',
+                  Cliente: x.Cliente?.RazaoSocial || '-',
+                  Cnpj: x.Cliente?.Cnpj || '-',
+                  Funcionario: ef?.Funcionario?.Nome || '-'
                 })
               }
             }
           }
         } else {
-          for (const x of normalizado) {
+          for (const x of (normalizado || [])) {
             let veiculosAux = ''
             let funcionariosAux = ''
-            x?.EscalaVeiculos?.map(item => { veiculosAux += (`${item.Veiculo?.Placa}; `) })
-            x?.EscalaFuncionarios?.map(item => { funcionariosAux += (`${item.Funcionario?.Nome}; `) })
+            x?.EscalaVeiculos?.map(item => { veiculosAux += (`${item.Veiculo?.Placa || ''}; `) })
+            x?.EscalaFuncionarios?.map(item => { funcionariosAux += (`${item.Funcionario?.Nome || ''}; `) })
   
             dados.push({
               id: x.id,
-              Data: moment(x.Data).local().format('DD/MM/YYYY'),
+              Data: x.Data ? moment(x.Data).local().format('DD/MM/YYYY') : '-',
               Hora: x.Hora ? moment(x.Hora, "HH:mm").format("HH:mm") : '',
-              Cliente: x.Cliente?.RazaoSocial,
-              Cnpj: x.Cliente?.Cnpj,
-              Equipamento: x.Equipamento?.Equipamento,
+              Cliente: x.Cliente?.RazaoSocial || '-',
+              Cnpj: x.Cliente?.Cnpj || '-',
+              Equipamento: x.Equipamento?.Equipamento || '-',
               Veiculos: veiculosAux,
               Funcionarios: funcionariosAux,
               Observacoes: x.Observacoes,

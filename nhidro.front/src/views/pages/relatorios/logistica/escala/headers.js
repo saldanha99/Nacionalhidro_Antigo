@@ -10,7 +10,7 @@ const columnsSimplificado = [
   {
     Header: "Data",
     id: "Data",
-    accessor: (value) => value.Data === '-' || value.Data,
+    accessor: "Data",
     filterAll: true,
     filterMethod: (filter, rows) => matchSorter(rows, filter.value, { keys: ["Data"] })
   },
@@ -81,7 +81,7 @@ const columnsFuncionario = [
   {
     Header: "Data",
     id: "Data",
-    accessor: (value) => value.Data === '-' || value.Data,
+    accessor: "Data",
     filterAll: true,
     filterMethod: (filter, rows) => matchSorter(rows, filter.value, { keys: ["Data"] })
   },

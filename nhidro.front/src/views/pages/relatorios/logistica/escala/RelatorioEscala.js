@@ -78,7 +78,7 @@ const RelatorioEscala = (props) => {
       setRelatorio(e.value)
 
       if (e.value === 'relatorio-funcionario') {
-        if (props.empresas) {
+        if (props.empresas?.length && !empresa) {
           setEmpresa(props.empresas[0]?.id)
         }
       }
@@ -114,6 +114,12 @@ const RelatorioEscala = (props) => {
     props.buscarEmpresas()
   }, [])
 
+  useEffect(() => {
+    if (props.empresas?.length && !empresa) {
+      setEmpresa(props.empresas[0]?.id)
+    }
+  }, [props.empresas])
+
   useEffectAfterMount(() => {
     setState({ ...state, data: props?.relatorio, filteredData: props?.relatorio })
     setLoadingSkeleton(false)
@@ -127,11 +133,7 @@ const RelatorioEscala = (props) => {
 
   useEffect(() => {
     handleFiltrarBtn(relatorio, intervaloData, empresa)
-  }, [intervaloData, relatorio])
-
-  useEffect(() => {
-    if (empresa) handleFiltrarBtn(relatorio, intervaloData, empresa)
-  }, [empresa])
+  }, [intervaloData, relatorio, empresa])
 
   return (
     <div>
@@ -175,7 +177,6 @@ const RelatorioEscala = (props) => {
                 }}
                 className="form-control"
                 style={{ backgroundColor: "#fff" }}
-                key={Portuguese}
                 options={{ mode: 'range', locale: Portuguese, dateFormat: 'd-m-Y'  }}
                 name="filtroData"
                 placeholder="Intervalo de datas"
