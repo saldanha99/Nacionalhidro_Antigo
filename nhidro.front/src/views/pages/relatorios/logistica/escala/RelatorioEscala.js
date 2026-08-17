@@ -9,7 +9,6 @@ import SkeletonDataTable from '../../../components/SkeletonDataTable'
 import { buscarEscalasRelatorio } from "@src/redux/actions/logistica/escala/buscarEscalasActions"
 import { buscarEmpresas } from "@src/redux/actions/administrador/empresa/buscarEmpresasActions"
 import Flatpickr from "react-flatpickr"
-import "./light.css"
 import "flatpickr/dist/themes/light.css"
 import "@styles/base/plugins/forms/pickers/form-flat-pickr.scss"
 import { Portuguese } from "flatpickr/dist/l10n/pt.js"
@@ -184,12 +183,16 @@ const RelatorioEscala = (props) => {
                 value={intervaloData}
                 onChange={date => handlerFiltroData(date)}
                 onClose={handleCloseFlatpickr}
-                className="form-control"
-                style={{ backgroundColor: "#fff" }}
-                options={{ mode: 'range', locale: Portuguese, dateFormat: 'd-m-Y' }}
+                className="form-control bg-white text-dark"
+                style={{ backgroundColor: "#ffffff", height: '3rem', cursor: 'pointer', color: '#222' }}
+                options={{
+                  mode: 'range',
+                  locale: Portuguese,
+                  dateFormat: 'd-m-Y',
+                  allowInput: true
+                }}
                 name="filtroData"
                 placeholder="Intervalo de datas"
-                ref={refComp}
               />
             </Col>
             {relatorio === 'relatorio-funcionario' && <Col className="mb-1" md="3" sm="12">
