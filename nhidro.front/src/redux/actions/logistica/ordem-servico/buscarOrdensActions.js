@@ -294,25 +294,37 @@ export const buscarOrdensMedicao = (model) => {
 }
 export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => {
   const populate = porFuncionario ? ['Cliente', 'Empresa', 'Escala', 'Escala.EscalaFuncionarios.Funcionario', 'Proposta', 'BaixadoPor'] : ['Cliente', 'Empresa', 'Proposta']
+
+  const parseToIso = (d) => {
+    if (!d) return moment().format('YYYY-MM-DD')
+    if (d instanceof Date) return moment(d).format('YYYY-MM-DD')
+    const m = moment(d, ['DD-MM-YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', moment.ISO_8601])
+    return m.isValid() ? m.format('YYYY-MM-DD') : moment(d).format('YYYY-MM-DD')
+  }
+
+  const d1 = parseToIso(data1)
+  const d2 = parseToIso(data2)
+
+  const filterConditions = [
+    {
+      DataInicial: {
+        $between: [d1, d2]
+      }
+    }
+  ]
+
+  if (porFuncionario && empresa) {
+    filterConditions.push({
+      Empresa: {
+        id: empresa
+      }
+    })
+  }
+
   const query = qs.stringify(
     {
-      filters: porFuncionario ? {
-        $and: [
-          {
-            DataInicial: {
-              $between: [data1, data2]
-            }
-          },
-          {
-            Empresa: {
-              id: empresa
-            }
-          }
-        ]
-      } : {
-        DataInicial: {
-          $between: [data1, data2]
-        }
+      filters: {
+        $and: filterConditions
       },
       sort: {
         DataInicial: 'asc'

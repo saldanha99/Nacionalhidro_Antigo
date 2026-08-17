@@ -91,8 +91,15 @@ export const buscarEscalasOrdens = (data1, data2) => {
 export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) => {
   const populate = porFuncionario ? ['Cliente', 'Empresa', 'EscalaFuncionarios.Funcionario'] : ['OrdemServico', 'Cliente', 'Equipamento', 'EscalaVeiculos.Veiculo', 'EscalaFuncionarios.Funcionario.Cargo', 'Empresa']
   
-  const d1 = moment(data1).format('YYYY-MM-DD')
-  const d2 = moment(data2).format('YYYY-MM-DD')
+  const parseToIso = (d) => {
+    if (!d) return moment().format('YYYY-MM-DD')
+    if (d instanceof Date) return moment(d).format('YYYY-MM-DD')
+    const m = moment(d, ['DD-MM-YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', moment.ISO_8601])
+    return m.isValid() ? m.format('YYYY-MM-DD') : moment(d).format('YYYY-MM-DD')
+  }
+
+  const d1 = parseToIso(data1)
+  const d2 = parseToIso(data2)
 
   const filterConditions = [
     {

@@ -128,6 +128,23 @@ const RelatorioOrdem = (props) => {
     handleFiltrarBtn(relatorio, dataInicial, dataFinal, empresa)
   }, [dataInicial, dataFinal, relatorio, empresa])
 
+  const handleDateUpdate = (setter) => (dates, dateStr) => {
+    if (dates && dates[0] && moment(dates[0]).isValid()) {
+      setter(dates[0])
+    } else if (dateStr) {
+      const m = moment(dateStr, ['DD-MM-YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D-M-YYYY', 'D/M/YYYY'])
+      if (m.isValid()) setter(m.toDate())
+    }
+  }
+
+  const handleDateBlur = (setter) => (e) => {
+    const val = e?.target?.value
+    if (val) {
+      const m = moment(val, ['DD-MM-YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D-M-YYYY', 'D/M/YYYY'])
+      if (m.isValid()) setter(m.toDate())
+    }
+  }
+
   return (
     <div>
       <Row className="mt-5">
@@ -162,16 +179,21 @@ const RelatorioOrdem = (props) => {
               <h5 className="text-bold-600" style={{ color: 'white' }}>Data Inicial:</h5>
               <Flatpickr
                 value={dataInicial}
-                onChange={date => {
-                  if (date && date[0]) setDataInicial(date[0])
-                }}
+                onChange={handleDateUpdate(setDataInicial)}
+                onClose={handleDateUpdate(setDataInicial)}
+                onValueUpdate={handleDateUpdate(setDataInicial)}
+                onBlur={handleDateBlur(setDataInicial)}
                 className="form-control bg-white text-dark"
                 style={{ backgroundColor: "#ffffff", height: '3rem', cursor: 'pointer', color: '#222' }}
                 options={{
                   mode: 'single',
                   locale: Portuguese,
                   dateFormat: 'd-m-Y',
-                  allowInput: true
+                  allowInput: true,
+                  parseDate: (datestr) => {
+                    const m = moment(datestr, ['DD-MM-YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D-M-YYYY', 'D/M/YYYY'])
+                    return m.isValid() ? m.toDate() : new Date(datestr)
+                  }
                 }}
                 name="dataInicial"
                 placeholder="Data Inicial"
@@ -181,16 +203,21 @@ const RelatorioOrdem = (props) => {
               <h5 className="text-bold-600" style={{ color: 'white' }}>Data Final:</h5>
               <Flatpickr
                 value={dataFinal}
-                onChange={date => {
-                  if (date && date[0]) setDataFinal(date[0])
-                }}
+                onChange={handleDateUpdate(setDataFinal)}
+                onClose={handleDateUpdate(setDataFinal)}
+                onValueUpdate={handleDateUpdate(setDataFinal)}
+                onBlur={handleDateBlur(setDataFinal)}
                 className="form-control bg-white text-dark"
                 style={{ backgroundColor: "#ffffff", height: '3rem', cursor: 'pointer', color: '#222' }}
                 options={{
                   mode: 'single',
                   locale: Portuguese,
                   dateFormat: 'd-m-Y',
-                  allowInput: true
+                  allowInput: true,
+                  parseDate: (datestr) => {
+                    const m = moment(datestr, ['DD-MM-YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D-M-YYYY', 'D/M/YYYY'])
+                    return m.isValid() ? m.toDate() : new Date(datestr)
+                  }
                 }}
                 name="dataFinal"
                 placeholder="Data Final"
