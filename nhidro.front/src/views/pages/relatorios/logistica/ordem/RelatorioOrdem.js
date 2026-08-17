@@ -37,12 +37,10 @@ const RelatorioOrdem = (props) => {
     quantityItensOnRow: 10
   }
 
-  const data1 = new Date(new Date().setMonth(new Date().getMonth() - 1))
-  const data2 = new Date(new Date().setMonth(new Date().getMonth() + 1))
-
   const [loadingSkeleton, setLoadingSkeleton] = useState(true)
   const [columns, setColumns] = useState(getHeader('relatorio-simplificado'))
-  const [intervaloData, setIntervaloData] = useState([data1, data2])
+  const [dataInicial, setDataInicial] = useState(moment().subtract(1, 'month').toDate())
+  const [dataFinal, setDataFinal] = useState(moment().add(1, 'month').toDate())
   const [empresa, setEmpresa] = useState(0)
 
   const [filteredReactTable, setFilteredReactTable] = useState([])
@@ -95,30 +93,13 @@ const RelatorioOrdem = (props) => {
     setState({ ...state, filteredData: state.data })
   }
 
-  const handleFiltrarBtn = (relatorio, intervaloData, empresa) => {
-    const d1 = intervaloData?.[0]
-    const d2 = intervaloData?.[1] || d1
-    if (d1 && d2) {
+  const handleFiltrarBtn = (relatorio, dtIni, dtFim, empresaId) => {
+    if (dtIni && dtFim) {
       setColumns(getHeader(relatorio))
-      if (relatorio === 'relatorio-simplificado') props.buscarOrdensRelatorio(d1, d2)
-      else props.buscarOrdensRelatorio(d1, d2, empresa, true)
+      if (relatorio === 'relatorio-simplificado') props.buscarOrdensRelatorio(dtIni, dtFim)
+      else props.buscarOrdensRelatorio(dtIni, dtFim, empresaId, true)
       setFilteredReactTable([])
       setLoadingSkeleton(true)
-    }
-  }
-
-  const handlerFiltroData = (dateValue) => {
-    if (dateValue.length === 2 || dateValue.length === 0) {
-      setIntervaloData(dateValue)
-    }
-  }
-
-  const handleCloseFlatpickr = (selectedDates, dateStr, instance) => {
-    if (selectedDates.length === 1) {
-      instance.setDate([selectedDates[0], selectedDates[0]], false)
-      setIntervaloData([selectedDates[0], selectedDates[0]])
-    } else if (selectedDates.length === 2) {
-      setIntervaloData(selectedDates)
     }
   }
 
@@ -138,14 +119,14 @@ const RelatorioOrdem = (props) => {
   }, [props?.relatorio])
 
   useEffect(() => {
-    if ((filteredReactTable?.length === 0 || state?.filteredData?.length === 0) && !intervaloData) {
+    if ((filteredReactTable?.length === 0 || state?.filteredData?.length === 0) && (!dataInicial || !dataFinal)) {
       setState({ ...state, filteredData: state.data })
     }
   }, [state.filteredData])
 
   useEffect(() => {
-    handleFiltrarBtn(relatorio, intervaloData, empresa)
-  }, [intervaloData, relatorio, empresa])
+    handleFiltrarBtn(relatorio, dataInicial, dataFinal, empresa)
+  }, [dataInicial, dataFinal, relatorio, empresa])
 
   return (
     <div>
@@ -177,22 +158,42 @@ const RelatorioOrdem = (props) => {
                 onChange={e => handleChangeRelatorio(e)}
               />
             </Col>
-            <Col className="mb-1" md="3">
-              <h5 className="text-bold-600" style={{ color: 'white' }}>Data:</h5>
+            <Col className="mb-1" md="2" sm="6">
+              <h5 className="text-bold-600" style={{ color: 'white' }}>Data Inicial:</h5>
               <Flatpickr
-                value={intervaloData}
-                onChange={date => handlerFiltroData(date)}
-                onClose={handleCloseFlatpickr}
+                value={dataInicial}
+                onChange={date => {
+                  if (date && date[0]) setDataInicial(date[0])
+                }}
                 className="form-control bg-white text-dark"
                 style={{ backgroundColor: "#ffffff", height: '3rem', cursor: 'pointer', color: '#222' }}
                 options={{
-                  mode: 'range',
+                  mode: 'single',
                   locale: Portuguese,
                   dateFormat: 'd-m-Y',
                   allowInput: true
                 }}
-                name="filtroData"
-                placeholder="Intervalo de datas"
+                name="dataInicial"
+                placeholder="Data Inicial"
+              />
+            </Col>
+            <Col className="mb-1" md="2" sm="6">
+              <h5 className="text-bold-600" style={{ color: 'white' }}>Data Final:</h5>
+              <Flatpickr
+                value={dataFinal}
+                onChange={date => {
+                  if (date && date[0]) setDataFinal(date[0])
+                }}
+                className="form-control bg-white text-dark"
+                style={{ backgroundColor: "#ffffff", height: '3rem', cursor: 'pointer', color: '#222' }}
+                options={{
+                  mode: 'single',
+                  locale: Portuguese,
+                  dateFormat: 'd-m-Y',
+                  allowInput: true
+                }}
+                name="dataFinal"
+                placeholder="Data Final"
               />
             </Col>
             {relatorio === 'relatorio-funcionario' && <Col className="mb-1" md="3" sm="12">
@@ -213,7 +214,7 @@ const RelatorioOrdem = (props) => {
                 onChange={e => handleChangeEmpresa(e)}
               />
             </Col>}
-            <Col md="2" className="mt-1"><Button style={{ marginTop: '10px' }} color='secondary' onClick={e => handleFiltrarBtn(relatorio, intervaloData, empresa)}>Buscar</Button></Col>
+            <Col md="2" className="mt-1"><Button style={{ marginTop: '10px' }} color='secondary' onClick={e => handleFiltrarBtn(relatorio, dataInicial, dataFinal, empresa)}>Buscar</Button></Col>
           </Row>
         </CardBody>
         {
