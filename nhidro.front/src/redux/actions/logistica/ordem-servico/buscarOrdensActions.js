@@ -293,7 +293,25 @@ export const buscarOrdensMedicao = (model) => {
   }
 }
 export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => {
-  const populate = porFuncionario ? ['Cliente', 'Empresa', 'Escala', 'Escala.EscalaFuncionarios.Funcionario', 'Proposta', 'BaixadoPor'] : ['Cliente', 'Empresa', 'Proposta']
+  const populate = porFuncionario ? {
+    Cliente: true,
+    Empresa: true,
+    Proposta: true,
+    BaixadoPor: true,
+    Escala: {
+      populate: {
+        EscalaFuncionarios: {
+          populate: {
+            Funcionario: true
+          }
+        }
+      }
+    }
+  } : {
+    Cliente: true,
+    Empresa: true,
+    Proposta: true
+  }
 
   const parseToIso = (d) => {
     if (!d) return moment().format('YYYY-MM-DD')
@@ -343,9 +361,10 @@ export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => 
     api.get(`api/ordem-servicos?${query}`, function (data) {
       if (data) {
         const normalizado = normalize(data)
+        const listaNormalizada = Array.isArray(normalizado) ? normalizado : []
         const dados = []
         if (porFuncionario) {
-          for (const x of normalizado.filter(f => f.Cliente?.id)) {
+          for (const x of listaNormalizada.filter(f => f.Cliente?.id)) {
             if (!x.Escala) continue;
             for (const ef of x.Escala?.EscalaFuncionarios?.filter(f => !f.Ausente)) {
               if (ef.StatusOperacao !== 1 && ef.StatusOperacao !== 2) { //Ferias e Atestado
@@ -367,7 +386,7 @@ export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => 
             }
           }
         } else {
-          for (const x of normalizado) {
+          for (const x of listaNormalizada) {
             dados.push({
               id: x.id,
               Data: moment(x.DataInicial).local().format('DD/MM/YYYY'),

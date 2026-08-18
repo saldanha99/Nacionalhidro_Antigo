@@ -89,7 +89,34 @@ export const buscarEscalasOrdens = (data1, data2) => {
   }
 }
 export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) => {
-  const populate = porFuncionario ? ['Cliente', 'Empresa', 'EscalaFuncionarios.Funcionario'] : ['OrdemServico', 'Cliente', 'Equipamento', 'EscalaVeiculos.Veiculo', 'EscalaFuncionarios.Funcionario.Cargo', 'Empresa']
+  const populate = porFuncionario ? {
+    Cliente: true,
+    Empresa: true,
+    EscalaFuncionarios: {
+      populate: {
+        Funcionario: true
+      }
+    }
+  } : {
+    OrdemServico: true,
+    Cliente: true,
+    Equipamento: true,
+    Empresa: true,
+    EscalaVeiculos: {
+      populate: {
+        Veiculo: true
+      }
+    },
+    EscalaFuncionarios: {
+      populate: {
+        Funcionario: {
+          populate: {
+            Cargo: true
+          }
+        }
+      }
+    }
+  }
   
   const parseToIso = (d) => {
     if (!d) return moment().format('YYYY-MM-DD')
@@ -139,9 +166,10 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
     api.get(`api/escalas?${query}`, function (data) {
       if (data) {
         const normalizado = normalize(data)
+        const listaNormalizada = Array.isArray(normalizado) ? normalizado : []
         const dados = []
         if (porFuncionario) {
-          for (const x of (normalizado || []).filter(f => f?.Cliente?.id)) {
+          for (const x of listaNormalizada.filter(f => f?.Cliente?.id)) {
             for (const ef of (x?.EscalaFuncionarios || []).filter(f => !f?.Ausente)) {
               if (ef?.StatusOperacao !== 1 && ef?.StatusOperacao !== 2) { //Ferias e Atestado
                 dados.push({
@@ -155,7 +183,7 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
             }
           }
         } else {
-          for (const x of (normalizado || [])) {
+          for (const x of listaNormalizada) {
             let veiculosAux = ''
             let funcionariosAux = ''
             x?.EscalaVeiculos?.map(item => { veiculosAux += (`${item.Veiculo?.Placa || ''}; `) })
