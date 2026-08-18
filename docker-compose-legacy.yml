@@ -57,7 +57,7 @@ services:
     build: 
       context: ./nhidro.front
       dockerfile: Dockerfile
-    image: nacionalhidro-legacy-frontend:v2.1
+    image: nacionalhidro-legacy-frontend:v2.2
     restart: always
     environment:
       REACT_APP_BACKEND_URL: https://${API_SUBDOMAIN:-apivps.nacionalhidro.com.br}/

@@ -796,3 +796,12 @@ span.flatpickr-weekday {
 span.flatpickr-day.selected {
   font-weight: bold;
 }
+
+/* Fix: Override Vuexy dark theme readonly opacity for Flatpickr inputs */
+.form-control[readonly] {
+  opacity: 1 !important;
+  background-color: #fff !important;
+  color: #333 !important;
+  cursor: pointer !important;
+}
+
