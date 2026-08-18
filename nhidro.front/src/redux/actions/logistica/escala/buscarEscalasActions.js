@@ -93,9 +93,7 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
     Cliente: true,
     Empresa: true,
     EscalaFuncionarios: {
-      populate: {
-        Funcionario: true
-      }
+      populate: '*'
     }
   } : {
     OrdemServico: true,
@@ -103,18 +101,10 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
     Equipamento: true,
     Empresa: true,
     EscalaVeiculos: {
-      populate: {
-        Veiculo: true
-      }
+      populate: '*'
     },
     EscalaFuncionarios: {
-      populate: {
-        Funcionario: {
-          populate: {
-            Cargo: true
-          }
-        }
-      }
+      populate: '*'
     }
   }
   
@@ -164,7 +154,7 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
 
   return (dispatch) => {
     api.get(`api/escalas?${query}`, function (data) {
-      if (data) {
+      if (data && data.data && Array.isArray(data.data)) {
         const normalizado = normalize(data)
         const listaNormalizada = Array.isArray(normalizado) ? normalizado : []
         const dados = []
@@ -210,8 +200,8 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
         })
       } else {
         dispatch({
-          type: "BUSCAR_ESCALAS_RELATORIO_ERROR",
-          payload:  {data}
+          type: "BUSCAR_ESCALAS_RELATORIO",
+          payload: []
         })
       } 
     })

@@ -301,9 +301,7 @@ export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => 
     Escala: {
       populate: {
         EscalaFuncionarios: {
-          populate: {
-            Funcionario: true
-          }
+          populate: '*'
         }
       }
     }
@@ -359,14 +357,14 @@ export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => 
 
   return (dispatch) => {
     api.get(`api/ordem-servicos?${query}`, function (data) {
-      if (data) {
+      if (data && data.data && Array.isArray(data.data)) {
         const normalizado = normalize(data)
         const listaNormalizada = Array.isArray(normalizado) ? normalizado : []
         const dados = []
         if (porFuncionario) {
           for (const x of listaNormalizada.filter(f => f.Cliente?.id)) {
             if (!x.Escala) continue;
-            for (const ef of x.Escala?.EscalaFuncionarios?.filter(f => !f.Ausente)) {
+            for (const ef of x.Escala?.EscalaFuncionarios?.filter(f => !f.Ausente) || []) {
               if (ef.StatusOperacao !== 1 && ef.StatusOperacao !== 2) { //Ferias e Atestado
                 dados.push({
                   id: x.id,
@@ -404,6 +402,11 @@ export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => 
         dispatch({
           type: "BUSCAR_ORDENS_RELATORIO",
           payload: dados
+        })
+      } else {
+        dispatch({
+          type: "BUSCAR_ORDENS_RELATORIO",
+          payload: []
         })
       }
     })
