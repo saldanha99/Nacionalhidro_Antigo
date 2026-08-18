@@ -164,8 +164,8 @@ const RelatorioOrdem = (props) => {
                   control: provided => ({ ...provided, minHeight: 0, height: '3rem' })
                 }}
                 name="relatorio"
-                options={opcoesRelatorio}
-                value={opcoesRelatorio.filter((option) => option.value === relatorio)}
+                options={relatorios}
+                value={relatorios.filter((option) => option.value === relatorio)}
                 getOptionLabel={(option) => option.label}
                 getOptionValue={(option) => option.value}
                 onChange={e => handleChangeRelatorio(e)}
