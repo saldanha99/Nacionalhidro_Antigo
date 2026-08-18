@@ -70,21 +70,17 @@ const RelatorioOrdem = (props) => {
     exportToExcel(groupObjByColumns(), `Relatorio_Ordens_${moment(new Date()).utc().format("YYYYMMDDhmmss")}`)
   }
 
+  const opcoesEmpresas = [{ id: 0, Descricao: 'Todas as Empresas' }, ...(props.empresas || [])]
+
   const handleChangeRelatorio = (e) => {
     if (e) {
       setRelatorio(e.value)
-
-      if (e.value === 'relatorio-funcionario') {
-        if (props.empresas) {
-          setEmpresa(props.empresas[0]?.id)
-        }
-      }
     }
   }
 
   const handleChangeEmpresa = (e) => {
     if (e) {
-      setEmpresa(e.id)
+      setEmpresa(e.id || 0)
     }
   }
 
@@ -97,7 +93,7 @@ const RelatorioOrdem = (props) => {
     if (dtIni && dtFim) {
       setColumns(getHeader(relatorio))
       if (relatorio === 'relatorio-simplificado') props.buscarOrdensRelatorio(dtIni, dtFim)
-      else props.buscarOrdensRelatorio(dtIni, dtFim, empresaId, true)
+      else props.buscarOrdensRelatorio(dtIni, dtFim, empresaId || 0, true)
       setFilteredReactTable([])
       setLoadingSkeleton(true)
     }
@@ -106,12 +102,6 @@ const RelatorioOrdem = (props) => {
   useEffect(() => {
     props.buscarEmpresas()
   }, [])
-
-  useEffect(() => {
-    if (props.empresas?.length && !empresa) {
-      setEmpresa(props.empresas[0]?.id)
-    }
-  }, [props.empresas])
 
   useEffectAfterMount(() => {
     setState({ ...state, data: props?.relatorio, filteredData: props?.relatorio })
@@ -233,11 +223,11 @@ const RelatorioOrdem = (props) => {
                   control: provided => ({ ...provided, minHeight: 0, height: '3rem' })
                 }}
                 name="empresa"
-                options={props.empresas}
+                options={opcoesEmpresas}
                 isSearchable
-                value={props.empresas?.filter((option) => option.id === empresa)}
+                value={opcoesEmpresas?.filter((option) => option.id === empresa)}
                 getOptionLabel={(option) => option?.Descricao}
-                getOptionValue={(option) => option}
+                getOptionValue={(option) => option?.id}
                 onChange={e => handleChangeEmpresa(e)}
               />
             </Col>}

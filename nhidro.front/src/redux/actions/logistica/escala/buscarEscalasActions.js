@@ -89,24 +89,17 @@ export const buscarEscalasOrdens = (data1, data2) => {
   }
 }
 export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) => {
-  const populate = porFuncionario ? {
-    Cliente: true,
-    Empresa: true,
-    EscalaFuncionarios: {
-      populate: '*'
-    }
-  } : {
-    OrdemServico: true,
-    Cliente: true,
-    Equipamento: true,
-    Empresa: true,
-    EscalaVeiculos: {
-      populate: '*'
-    },
-    EscalaFuncionarios: {
-      populate: '*'
-    }
-  }
+  const populate = [
+    'Cliente',
+    'Empresa',
+    'Equipamento',
+    'OrdemServico',
+    'Veiculos',
+    'Funcionarios',
+    'EscalaVeiculos.Veiculo',
+    'EscalaFuncionarios.Funcionario',
+    'EscalaFuncionarios.Funcionario.Cargo'
+  ]
   
   const parseToIso = (d) => {
     if (!d) return moment().format('YYYY-MM-DD')
@@ -126,10 +119,12 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
     }
   ]
 
-  if (porFuncionario && empresa) {
+  if (porFuncionario && empresa && Number(empresa) > 0) {
     filterConditions.push({
       Empresa: {
-        id: empresa
+        id: {
+          $eq: Number(empresa)
+        }
       }
     })
   }
@@ -154,20 +149,44 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
 
   return (dispatch) => {
     api.get(`api/escalas?${query}`, function (data) {
-      if (data && data.data && Array.isArray(data.data)) {
+      if (data) {
         const normalizado = normalize(data)
-        const listaNormalizada = Array.isArray(normalizado) ? normalizado : []
+        const listaNormalizada = Array.isArray(normalizado) ? normalizado : (normalizado?.data && Array.isArray(normalizado.data) ? normalizado.data : [])
         const dados = []
         if (porFuncionario) {
-          for (const x of listaNormalizada.filter(f => f?.Cliente?.id)) {
-            for (const ef of (x?.EscalaFuncionarios || []).filter(f => !f?.Ausente)) {
-              if (ef?.StatusOperacao !== 1 && ef?.StatusOperacao !== 2) { //Ferias e Atestado
+          for (const x of listaNormalizada) {
+            const funcionariosList = []
+            if (x?.EscalaFuncionarios?.length > 0) {
+              for (const ef of x.EscalaFuncionarios) {
+                if (!ef?.Ausente && ef?.StatusOperacao !== 1 && ef?.StatusOperacao !== 2) {
+                  const nome = ef?.Funcionario?.Nome || ef?.Nome
+                  if (nome) funcionariosList.push(nome)
+                }
+              }
+            }
+            if (funcionariosList.length === 0 && x?.Funcionarios?.length > 0) {
+              for (const f of x.Funcionarios) {
+                const nome = f?.Nome || f?.Funcionario?.Nome
+                if (nome) funcionariosList.push(nome)
+              }
+            }
+
+            if (funcionariosList.length === 0) {
+              dados.push({
+                id: x.id,
+                Data: x.Data ? moment(x.Data).local().format('DD/MM/YYYY') : '-',
+                Cliente: x.Cliente?.RazaoSocial || x.Cliente?.Nome || '-',
+                Cnpj: x.Cliente?.Cnpj || '-',
+                Funcionario: '-'
+              })
+            } else {
+              for (const nome of funcionariosList) {
                 dados.push({
                   id: x.id,
                   Data: x.Data ? moment(x.Data).local().format('DD/MM/YYYY') : '-',
-                  Cliente: x.Cliente?.RazaoSocial || '-',
+                  Cliente: x.Cliente?.RazaoSocial || x.Cliente?.Nome || '-',
                   Cnpj: x.Cliente?.Cnpj || '-',
-                  Funcionario: ef?.Funcionario?.Nome || '-'
+                  Funcionario: nome
                 })
               }
             }
@@ -176,21 +195,44 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
           for (const x of listaNormalizada) {
             let veiculosAux = ''
             let funcionariosAux = ''
-            x?.EscalaVeiculos?.map(item => { veiculosAux += (`${item.Veiculo?.Placa || ''}; `) })
-            x?.EscalaFuncionarios?.map(item => { funcionariosAux += (`${item.Funcionario?.Nome || ''}; `) })
-  
+            if (x?.EscalaVeiculos?.length > 0) {
+              x.EscalaVeiculos.forEach(item => {
+                const placa = item.Veiculo?.Placa || item.Veiculo?.Descricao || item.Placa || item.Descricao || ''
+                if (placa) veiculosAux += `${placa}; `
+              })
+            }
+            if (!veiculosAux && x?.Veiculos?.length > 0) {
+              x.Veiculos.forEach(item => {
+                const placa = item.Placa || item.Descricao || ''
+                if (placa) veiculosAux += `${placa}; `
+              })
+            }
+
+            if (x?.EscalaFuncionarios?.length > 0) {
+              x.EscalaFuncionarios.forEach(item => {
+                const nome = item.Funcionario?.Nome || item.Nome || ''
+                if (nome) funcionariosAux += `${nome}; `
+              })
+            }
+            if (!funcionariosAux && x?.Funcionarios?.length > 0) {
+              x.Funcionarios.forEach(item => {
+                const nome = item.Nome || ''
+                if (nome) funcionariosAux += `${nome}; `
+              })
+            }
+
             dados.push({
               id: x.id,
               Data: x.Data ? moment(x.Data).local().format('DD/MM/YYYY') : '-',
               Hora: x.Hora ? moment(x.Hora, "HH:mm").format("HH:mm") : '',
-              Cliente: x.Cliente?.RazaoSocial || '-',
+              Cliente: x.Cliente?.RazaoSocial || x.Cliente?.Nome || '-',
               Cnpj: x.Cliente?.Cnpj || '-',
-              Equipamento: x.Equipamento?.Equipamento || '-',
-              Veiculos: veiculosAux,
-              Funcionarios: funcionariosAux,
-              Observacoes: x.Observacoes,
-              OrdemServico: x.OrdemServico ? `${x.OrdemServico?.Codigo}/${x.OrdemServico?.Numero}` : '-',
-              Status: Lista_StatusEscala.find(y => y.value === x.Status)?.label
+              Equipamento: x.Equipamento?.Equipamento || x.Equipamento?.Descricao || '-',
+              Veiculos: veiculosAux || '-',
+              Funcionarios: funcionariosAux || '-',
+              Observacoes: x.Observacoes || '',
+              OrdemServico: x.OrdemServico ? `${x.OrdemServico?.Codigo || ''}/${x.OrdemServico?.Numero || ''}` : '-',
+              Status: Lista_StatusEscala.find(y => y.value === x.Status)?.label || '-'
             })
           }
         }

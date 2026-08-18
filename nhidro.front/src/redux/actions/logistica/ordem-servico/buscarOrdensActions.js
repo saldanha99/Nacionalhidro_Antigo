@@ -293,23 +293,17 @@ export const buscarOrdensMedicao = (model) => {
   }
 }
 export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => {
-  const populate = porFuncionario ? {
-    Cliente: true,
-    Empresa: true,
-    Proposta: true,
-    BaixadoPor: true,
-    Escala: {
-      populate: {
-        EscalaFuncionarios: {
-          populate: '*'
-        }
-      }
-    }
-  } : {
-    Cliente: true,
-    Empresa: true,
-    Proposta: true
-  }
+  const populate = [
+    'Cliente',
+    'Empresa',
+    'Proposta',
+    'BaixadoPor',
+    'Escala',
+    'Escala.Veiculos',
+    'Escala.Funcionarios',
+    'Escala.EscalaVeiculos.Veiculo',
+    'Escala.EscalaFuncionarios.Funcionario'
+  ]
 
   const parseToIso = (d) => {
     if (!d) return moment().format('YYYY-MM-DD')
@@ -329,10 +323,12 @@ export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => 
     }
   ]
 
-  if (porFuncionario && empresa) {
+  if (porFuncionario && empresa && Number(empresa) > 0) {
     filterConditions.push({
       Empresa: {
-        id: empresa
+        id: {
+          $eq: Number(empresa)
+        }
       }
     })
   }
@@ -357,28 +353,59 @@ export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => 
 
   return (dispatch) => {
     api.get(`api/ordem-servicos?${query}`, function (data) {
-      if (data && data.data && Array.isArray(data.data)) {
+      if (data) {
         const normalizado = normalize(data)
-        const listaNormalizada = Array.isArray(normalizado) ? normalizado : []
+        const listaNormalizada = Array.isArray(normalizado) ? normalizado : (normalizado?.data && Array.isArray(normalizado.data) ? normalizado.data : [])
         const dados = []
         if (porFuncionario) {
-          for (const x of listaNormalizada.filter(f => f.Cliente?.id)) {
-            if (!x.Escala) continue;
-            for (const ef of x.Escala?.EscalaFuncionarios?.filter(f => !f.Ausente) || []) {
-              if (ef.StatusOperacao !== 1 && ef.StatusOperacao !== 2) { //Ferias e Atestado
+          for (const x of listaNormalizada) {
+            const funcionariosList = []
+            const escalaObj = x.Escala
+            if (escalaObj?.EscalaFuncionarios?.length > 0) {
+              for (const ef of escalaObj.EscalaFuncionarios) {
+                if (!ef?.Ausente && ef?.StatusOperacao !== 1 && ef?.StatusOperacao !== 2) {
+                  const nome = ef?.Funcionario?.Nome || ef?.Nome
+                  if (nome) funcionariosList.push(nome)
+                }
+              }
+            }
+            if (funcionariosList.length === 0 && escalaObj?.Funcionarios?.length > 0) {
+              for (const f of escalaObj.Funcionarios) {
+                const nome = f?.Nome || f?.Funcionario?.Nome
+                if (nome) funcionariosList.push(nome)
+              }
+            }
+
+            if (funcionariosList.length === 0) {
+              dados.push({
+                id: x.id,
+                Data: x.DataInicial ? moment(x.DataInicial).local().format('DD/MM/YYYY') : '-',
+                DataBaixa: x.DataBaixa ? moment(x.DataBaixa).local().format('DD/MM/YYYY') : '-',
+                Cliente: x.Cliente?.RazaoSocial || x.Cliente?.Nome || '-',
+                Cnpj: x.Cliente?.Cnpj || '-',
+                Empresa: x.Empresa?.Descricao || '-',
+                Proposta: x.Proposta?.Codigo || '-',
+                Funcionario: '-',
+                UsuarioBaixa: x.BaixadoPor?.email || '-',
+                Codigo: `${x?.Codigo || ''}/${x?.Numero || ''}`,
+                Status: Lista_StatusOrdem.find(y => y.value === x.Status)?.label || '-',
+                Observacoes: x.Observacoes || ''
+              })
+            } else {
+              for (const nome of funcionariosList) {
                 dados.push({
                   id: x.id,
-                  Data: moment(x.DataInicial).local().format('DD/MM/YYYY'),
-                  DataBaixa: moment(x.DataBaixa).local().format('DD/MM/YYYY'),
-                  Cliente: x.Cliente?.RazaoSocial,
-                  Cnpj: x.Cliente?.Cnpj,
-                  Empresa: x.Empresa?.Descricao,
-                  Proposta: x.Proposta?.Codigo,
-                  Funcionario: ef.Funcionario?.Nome,
-                  UsuarioBaixa: x.BaixadoPor?.email,
-                  Codigo: `${x?.Codigo}/${x?.Numero}`,
-                  Status: Lista_StatusOrdem.find(y => y.value === x.Status)?.label,
-                  Observacoes: x.Observacoes
+                  Data: x.DataInicial ? moment(x.DataInicial).local().format('DD/MM/YYYY') : '-',
+                  DataBaixa: x.DataBaixa ? moment(x.DataBaixa).local().format('DD/MM/YYYY') : '-',
+                  Cliente: x.Cliente?.RazaoSocial || x.Cliente?.Nome || '-',
+                  Cnpj: x.Cliente?.Cnpj || '-',
+                  Empresa: x.Empresa?.Descricao || '-',
+                  Proposta: x.Proposta?.Codigo || '-',
+                  Funcionario: nome,
+                  UsuarioBaixa: x.BaixadoPor?.email || '-',
+                  Codigo: `${x?.Codigo || ''}/${x?.Numero || ''}`,
+                  Status: Lista_StatusOrdem.find(y => y.value === x.Status)?.label || '-',
+                  Observacoes: x.Observacoes || ''
                 })
               }
             }
@@ -387,15 +414,15 @@ export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => 
           for (const x of listaNormalizada) {
             dados.push({
               id: x.id,
-              Data: moment(x.DataInicial).local().format('DD/MM/YYYY'),
+              Data: x.DataInicial ? moment(x.DataInicial).local().format('DD/MM/YYYY') : '-',
               Hora: x.HoraInicial ? moment(x.HoraInicial, "HH:mm").format("HH:mm") : '',
-              Cliente: x.Cliente?.RazaoSocial,
-              Cnpj: x.Cliente?.Cnpj,
-              Empresa: x.Empresa?.Descricao,
-              Proposta: x.Proposta?.Codigo,
-              Codigo: `${x?.Codigo}/${x?.Numero}`,
-              Status: Lista_StatusOrdem.find(y => y.value === x.Status)?.label,
-              Observacoes: x.Observacoes
+              Cliente: x.Cliente?.RazaoSocial || x.Cliente?.Nome || '-',
+              Cnpj: x.Cliente?.Cnpj || '-',
+              Empresa: x.Empresa?.Descricao || '-',
+              Proposta: x.Proposta?.Codigo || '-',
+              Codigo: `${x?.Codigo || ''}/${x?.Numero || ''}`,
+              Status: Lista_StatusOrdem.find(y => y.value === x.Status)?.label || '-',
+              Observacoes: x.Observacoes || ''
             })
           }
         }
