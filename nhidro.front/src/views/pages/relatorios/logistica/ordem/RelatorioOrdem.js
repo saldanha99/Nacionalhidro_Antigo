@@ -41,7 +41,7 @@ const RelatorioOrdem = (props) => {
   const data1 = new Date(new Date().setMonth(new Date().getMonth() - 1))
   const data2 = new Date(new Date().setMonth(new Date().getMonth() + 1))
 
-  const [loadingSkeleton, setLoadingSkeleton] = useState(false)
+  const [loadingSkeleton, setLoadingSkeleton] = useState(true)
   const [columns, setColumns] = useState(getHeader('relatorio-simplificado'))
   const [intervaloData, setIntervaloData] = useState([data1, data2])
   const [empresa, setEmpresa] = useState(0)
@@ -96,13 +96,13 @@ const RelatorioOrdem = (props) => {
     setIntervaloData(dateValue)
   }
 
-  const handleFiltrarBtn = () => {
-    if (intervaloData.length && intervaloData[0] && intervaloData[1]) {
-      setColumns(getHeader(relatorio))
-      if (relatorio === 'relatorio-simplificado') {
-        props.buscarOrdensRelatorio(intervaloData[0], intervaloData[1])
+  const handleFiltrarBtn = (tipoRelatorio = relatorio, datas = intervaloData, empId = empresa) => {
+    if (datas && datas.length && datas[0] && datas[1]) {
+      setColumns(getHeader(tipoRelatorio))
+      if (tipoRelatorio === 'relatorio-simplificado') {
+        props.buscarOrdensRelatorio(datas[0], datas[1])
       } else {
-        props.buscarOrdensRelatorio(intervaloData[0], intervaloData[1], empresa || 0, true)
+        props.buscarOrdensRelatorio(datas[0], datas[1], empId || 0, true)
       }
       setFilteredReactTable([])
       setLoadingSkeleton(true)
@@ -123,6 +123,10 @@ const RelatorioOrdem = (props) => {
       setState({ ...state, filteredData: state.data })
     }
   }, [state.filteredData])
+
+  useEffect(() => {
+    handleFiltrarBtn(relatorio, intervaloData, empresa)
+  }, [intervaloData, relatorio, empresa])
 
   return (
     <div>
@@ -166,9 +170,9 @@ const RelatorioOrdem = (props) => {
                   }
                 }}
                 className="form-control"
-                style={{ backgroundColor: "#fff", height: '3rem' }}
+                style={{ backgroundColor: "#fff" }}
                 key={Portuguese}
-                options={{ mode: 'range', locale: Portuguese, dateFormat: 'd/m/Y' }}
+                options={{ mode: 'range', locale: Portuguese, dateFormat: 'd-m-Y' }}
                 name="filtroData"
                 placeholder="Intervalo de datas"
                 ref={refComp}
@@ -192,7 +196,7 @@ const RelatorioOrdem = (props) => {
                 onChange={e => handleChangeEmpresa(e)}
               />
             </Col>}
-            <Col md="2" className="mt-1"><Button style={{ marginTop: '10px' }} color='secondary' onClick={() => handleFiltrarBtn()}>Buscar</Button></Col>
+            <Col md="2" className="mt-1"><Button style={{ marginTop: '10px' }} color='secondary' onClick={() => handleFiltrarBtn(relatorio, intervaloData, empresa)}>Buscar</Button></Col>
           </Row>
         </CardBody>
         {
