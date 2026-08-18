@@ -37,10 +37,12 @@ const RelatorioEscala = (props) => {
     quantityItensOnRow: 10
   }
 
-  const [loadingSkeleton, setLoadingSkeleton] = useState(true)
+  const data1 = new Date(new Date().setMonth(new Date().getMonth() - 1))
+  const data2 = new Date(new Date().setMonth(new Date().getMonth() + 1))
+
+  const [loadingSkeleton, setLoadingSkeleton] = useState(false)
   const [columns, setColumns] = useState(getHeader('relatorio-simplificado'))
-  const [dataInicial, setDataInicial] = useState(moment().subtract(1, 'month').toDate())
-  const [dataFinal, setDataFinal] = useState(moment().add(1, 'month').toDate())
+  const [intervaloData, setIntervaloData] = useState([data1, data2])
   const [empresa, setEmpresa] = useState(0)
 
   const [filteredReactTable, setFilteredReactTable] = useState([])
@@ -53,6 +55,8 @@ const RelatorioEscala = (props) => {
     { label: 'Relatório Simplificado', value: 'relatorio-simplificado' },
     { label: 'Relatório de Alocação', value: 'relatorio-funcionario' }
   ]
+
+  const opcoesEmpresas = [{ id: 0, Descricao: 'Todas as Empresas' }, ...(props.empresas || [])]
 
   const groupObjByColumns = () => {
     const arr = state?.filteredData.map(x => {
@@ -69,8 +73,6 @@ const RelatorioEscala = (props) => {
   const handleExportToExcel = () => {
     exportToExcel(groupObjByColumns(), `Relatorio_Escalas_${moment(new Date()).utc().format("YYYYMMDDhmmss")}`)
   }
-
-  const opcoesEmpresas = [{ id: 0, Descricao: 'Todas as Empresas' }, ...(props.empresas || [])]
 
   const handleChangeRelatorio = (e) => {
     if (e) {
@@ -89,11 +91,18 @@ const RelatorioEscala = (props) => {
     setState({ ...state, filteredData: state.data })
   }
 
-  const handleFiltrarBtn = (relatorio, dtIni, dtFim, empresaId) => {
-    if (dtIni && dtFim) {
+  const handlerFiltroData = (dateValue) => {
+    setIntervaloData(dateValue)
+  }
+
+  const handleFiltrarBtn = () => {
+    if (intervaloData.length && intervaloData[0] && intervaloData[1]) {
       setColumns(getHeader(relatorio))
-      if (relatorio === 'relatorio-simplificado') props.buscarEscalasRelatorio(dtIni, dtFim)
-      else props.buscarEscalasRelatorio(dtIni, dtFim, empresaId || 0, true)
+      if (relatorio === 'relatorio-simplificado') {
+        props.buscarEscalasRelatorio(intervaloData[0], intervaloData[1])
+      } else {
+        props.buscarEscalasRelatorio(intervaloData[0], intervaloData[1], empresa || 0, true)
+      }
       setFilteredReactTable([])
       setLoadingSkeleton(true)
     }
@@ -101,7 +110,6 @@ const RelatorioEscala = (props) => {
 
   useEffect(() => {
     props.buscarEmpresas()
-    handleFiltrarBtn(relatorio, dataInicial, dataFinal, empresa)
   }, [])
 
   useEffectAfterMount(() => {
@@ -110,35 +118,10 @@ const RelatorioEscala = (props) => {
   }, [props?.relatorio])
 
   useEffect(() => {
-    if ((filteredReactTable?.length === 0 || state?.filteredData?.length === 0) && (!dataInicial || !dataFinal)) {
+    if ((filteredReactTable?.length === 0 || state?.filteredData?.length === 0) && !intervaloData) {
       setState({ ...state, filteredData: state.data })
     }
   }, [state.filteredData])
-
-  useEffect(() => {
-    handleFiltrarBtn(relatorio, dataInicial, dataFinal, empresa)
-  }, [relatorio, empresa])
-
-  const handleDateUpdate = (setter) => (dates, dateStr) => {
-    if (dates && dates[0] && moment(dates[0]).isValid()) {
-      setter(dates[0])
-    } else if (dateStr && dateStr.length >= 8) {
-      const m = moment(dateStr, ['DD/MM/YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D/M/YYYY', 'D-M-YYYY'])
-      if (m.isValid() && m.year() >= 1970) {
-        setter(m.toDate())
-      }
-    }
-  }
-
-  const handleDateBlur = (setter) => (e) => {
-    const val = e?.target?.value
-    if (val && val.length >= 8) {
-      const m = moment(val, ['DD/MM/YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D/M/YYYY', 'D-M-YYYY'])
-      if (m.isValid() && m.year() >= 1970) {
-        setter(m.toDate())
-      }
-    }
-  }
 
   return (
     <div>
@@ -171,50 +154,22 @@ const RelatorioEscala = (props) => {
                 onChange={e => handleChangeRelatorio(e)}
               />
             </Col>
-            <Col className="mb-1" md="2" sm="6">
-              <h5 className="text-bold-600" style={{ color: 'white' }}>Data Inicial:</h5>
+            <Col className="mb-1" md="3">
+              <h5 className="text-bold-600" style={{ color: 'white' }}>Período:</h5>
               <Flatpickr
-                value={dataInicial}
-                onChange={handleDateUpdate(setDataInicial)}
-                onClose={handleDateUpdate(setDataInicial)}
-                onBlur={handleDateBlur(setDataInicial)}
-                className="form-control bg-white text-dark"
-                style={{ backgroundColor: "#ffffff", height: '3rem', cursor: 'pointer', color: '#222' }}
-                options={{
-                  mode: 'single',
-                  locale: Portuguese,
-                  dateFormat: 'd/m/Y',
-                  allowInput: true,
-                  parseDate: (datestr) => {
-                    const m = moment(datestr, ['DD/MM/YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D/M/YYYY', 'D-M-YYYY'])
-                    return m.isValid() ? m.toDate() : new Date(datestr)
+                value={intervaloData}
+                onChange={date => handlerFiltroData(date)}
+                onClose={(selectedDates, dateStr, instance) => {
+                  if (selectedDates.length === 1) {
+                    instance.setDate([selectedDates[0], selectedDates[0]], true)
                   }
                 }}
-                name="dataInicial"
-                placeholder="Data Inicial"
-              />
-            </Col>
-            <Col className="mb-1" md="2" sm="6">
-              <h5 className="text-bold-600" style={{ color: 'white' }}>Data Final:</h5>
-              <Flatpickr
-                value={dataFinal}
-                onChange={handleDateUpdate(setDataFinal)}
-                onClose={handleDateUpdate(setDataFinal)}
-                onBlur={handleDateBlur(setDataFinal)}
-                className="form-control bg-white text-dark"
-                style={{ backgroundColor: "#ffffff", height: '3rem', cursor: 'pointer', color: '#222' }}
-                options={{
-                  mode: 'single',
-                  locale: Portuguese,
-                  dateFormat: 'd/m/Y',
-                  allowInput: true,
-                  parseDate: (datestr) => {
-                    const m = moment(datestr, ['DD/MM/YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D/M/YYYY', 'D-M-YYYY'])
-                    return m.isValid() ? m.toDate() : new Date(datestr)
-                  }
-                }}
-                name="dataFinal"
-                placeholder="Data Final"
+                className="form-control"
+                style={{ backgroundColor: "#fff", height: '3rem' }}
+                options={{ mode: 'range', locale: Portuguese, dateFormat: 'd/m/Y' }}
+                name="filtroData"
+                placeholder="Intervalo de datas"
+                ref={refComp}
               />
             </Col>
             {relatorio === 'relatorio-funcionario' && <Col className="mb-1" md="3" sm="12">
@@ -235,7 +190,7 @@ const RelatorioEscala = (props) => {
                 onChange={e => handleChangeEmpresa(e)}
               />
             </Col>}
-            <Col md="2" className="mt-1"><Button style={{ marginTop: '10px' }} color='secondary' onClick={e => handleFiltrarBtn(relatorio, dataInicial, dataFinal, empresa)}>Buscar</Button></Col>
+            <Col md="2" className="mt-1"><Button style={{ marginTop: '10px' }} color='secondary' onClick={() => handleFiltrarBtn()}>Buscar</Button></Col>
           </Row>
         </CardBody>
         {
