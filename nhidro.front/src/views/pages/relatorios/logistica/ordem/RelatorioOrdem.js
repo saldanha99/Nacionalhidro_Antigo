@@ -1,18 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
 import useEffectAfterMount from "@src/hooks/useEffectAfterMount"
 import { connect } from "react-redux"
-import { Card, Row, Col, Button, CardBody } from 'reactstrap'
+import { Card, Row, Col, Button, CardBody, Input } from 'reactstrap'
 import ReactTable from 'react-table-v6'
 import 'react-table-v6/react-table.css'
 import { matchSorter } from "match-sorter"
 import SkeletonDataTable from '../../../components/SkeletonDataTable'
 import { buscarOrdensRelatorio } from "@src/redux/actions/logistica/ordem-servico/buscarOrdensActions"
 import { buscarEmpresas } from "@src/redux/actions/administrador/empresa/buscarEmpresasActions"
-import Flatpickr from "react-flatpickr"
-import "./light.css"
-import "flatpickr/dist/themes/light.css"
-import "@styles/base/plugins/forms/pickers/form-flat-pickr.scss"
-import { Portuguese } from "flatpickr/dist/l10n/pt.js"
 import Select from "react-select"
 import { exportToExcel } from '../../../../../utility/Utils'
 import { getHeader } from './headers'
@@ -20,7 +15,6 @@ import moment from "moment"
 moment.locale("pt-br")
 
 const RelatorioOrdem = (props) => {
-  const refComp = useRef(null)
   const configDataTableSkeleton = {
     nameRows: [
       { name: 'ID' },
@@ -38,12 +32,10 @@ const RelatorioOrdem = (props) => {
     quantityItensOnRow: 10
   }
 
-  const data1 = new Date(new Date().setMonth(new Date().getMonth() - 1))
-  const data2 = new Date(new Date().setMonth(new Date().getMonth() + 1))
-
   const [loadingSkeleton, setLoadingSkeleton] = useState(true)
   const [columns, setColumns] = useState(getHeader('relatorio-simplificado'))
-  const [intervaloData, setIntervaloData] = useState([data1, data2])
+  const [dataInicial, setDataInicial] = useState(moment().subtract(1, 'month').format('YYYY-MM-DD'))
+  const [dataFinal, setDataFinal] = useState(moment().add(1, 'month').format('YYYY-MM-DD'))
   const [empresa, setEmpresa] = useState(0)
 
   const [filteredReactTable, setFilteredReactTable] = useState([])
@@ -92,17 +84,13 @@ const RelatorioOrdem = (props) => {
     setState({ ...state, filteredData: state.data })
   }
 
-  const handlerFiltroData = (dateValue) => {
-    setIntervaloData(dateValue)
-  }
-
-  const handleFiltrarBtn = (tipoRelatorio = relatorio, datas = intervaloData, empId = empresa) => {
-    if (datas && datas.length && datas[0] && datas[1]) {
+  const handleFiltrarBtn = (tipoRelatorio = relatorio, d1 = dataInicial, d2 = dataFinal, empId = empresa) => {
+    if (d1 && d2) {
       setColumns(getHeader(tipoRelatorio))
       if (tipoRelatorio === 'relatorio-simplificado') {
-        props.buscarOrdensRelatorio(datas[0], datas[1])
+        props.buscarOrdensRelatorio(d1, d2)
       } else {
-        props.buscarOrdensRelatorio(datas[0], datas[1], empId || 0, true)
+        props.buscarOrdensRelatorio(d1, d2, empId || 0, true)
       }
       setFilteredReactTable([])
       setLoadingSkeleton(true)
@@ -119,14 +107,14 @@ const RelatorioOrdem = (props) => {
   }, [props?.relatorio])
 
   useEffect(() => {
-    if ((filteredReactTable?.length === 0 || state?.filteredData?.length === 0) && !intervaloData) {
+    if ((filteredReactTable?.length === 0 || state?.filteredData?.length === 0) && (!dataInicial || !dataFinal)) {
       setState({ ...state, filteredData: state.data })
     }
   }, [state.filteredData])
 
   useEffect(() => {
-    handleFiltrarBtn(relatorio, intervaloData, empresa)
-  }, [intervaloData, relatorio, empresa])
+    handleFiltrarBtn(relatorio, dataInicial, dataFinal, empresa)
+  }, [dataInicial, dataFinal, relatorio, empresa])
 
   return (
     <div>
@@ -159,23 +147,26 @@ const RelatorioOrdem = (props) => {
                 onChange={e => handleChangeRelatorio(e)}
               />
             </Col>
-            <Col className="mb-1" md="3">
-              <h5 className="text-bold-600" style={{ color: 'white' }}>Período:</h5>
-              <Flatpickr
-                value={intervaloData}
-                onChange={date => handlerFiltroData(date)}
-                onClose={(selectedDates, dateStr, instance) => {
-                  if (selectedDates.length === 1) {
-                    instance.setDate([selectedDates[0], selectedDates[0]], true)
-                  }
-                }}
-                className="form-control"
-                style={{ backgroundColor: "#fff" }}
-                key={Portuguese}
-                options={{ mode: 'range', locale: Portuguese, dateFormat: 'd-m-Y' }}
-                name="filtroData"
-                placeholder="Intervalo de datas"
-                ref={refComp}
+            <Col className="mb-1" md="2" sm="6">
+              <h5 className="text-bold-600" style={{ color: 'white' }}>Data Inicial:</h5>
+              <Input
+                type="date"
+                name="dataInicial"
+                value={dataInicial}
+                onChange={e => setDataInicial(e.target.value)}
+                style={{ backgroundColor: "#ffffff", height: '3rem', cursor: 'pointer', color: '#222' }}
+                className="form-control bg-white text-dark"
+              />
+            </Col>
+            <Col className="mb-1" md="2" sm="6">
+              <h5 className="text-bold-600" style={{ color: 'white' }}>Data Final:</h5>
+              <Input
+                type="date"
+                name="dataFinal"
+                value={dataFinal}
+                onChange={e => setDataFinal(e.target.value)}
+                style={{ backgroundColor: "#ffffff", height: '3rem', cursor: 'pointer', color: '#222' }}
+                className="form-control bg-white text-dark"
               />
             </Col>
             {relatorio === 'relatorio-funcionario' && <Col className="mb-1" md="3" sm="12">
@@ -196,7 +187,11 @@ const RelatorioOrdem = (props) => {
                 onChange={e => handleChangeEmpresa(e)}
               />
             </Col>}
-            <Col md="2" className="mt-1"><Button style={{ marginTop: '10px' }} color='secondary' onClick={() => handleFiltrarBtn(relatorio, intervaloData, empresa)}>Buscar</Button></Col>
+            <Col md="2" className="mt-1">
+              <Button style={{ marginTop: '10px' }} color='secondary' onClick={() => handleFiltrarBtn(relatorio, dataInicial, dataFinal, empresa)}>
+                Buscar
+              </Button>
+            </Col>
           </Row>
         </CardBody>
         {
