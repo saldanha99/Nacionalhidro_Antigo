@@ -94,11 +94,8 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
     'Empresa',
     'Equipamento',
     'OrdemServico',
-    'Veiculos',
-    'Funcionarios',
     'EscalaVeiculos.Veiculo',
-    'EscalaFuncionarios.Funcionario',
-    'EscalaFuncionarios.Funcionario.Cargo'
+    'EscalaFuncionarios.Funcionario'
   ]
   
   const parseToIso = (d) => {
@@ -122,9 +119,7 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
   if (porFuncionario && empresa && Number(empresa) > 0) {
     filterConditions.push({
       Empresa: {
-        id: {
-          $eq: Number(empresa)
-        }
+        id: Number(empresa)
       }
     })
   }
@@ -135,8 +130,7 @@ export const buscarEscalasRelatorio = (data1, data2, empresa, porFuncionario) =>
         $and: filterConditions
       },
       pagination: {
-        limit: 10000,
-        pageSize: 10000
+        pageSize: 1000
       },
       sort: {
         Data: 'asc'

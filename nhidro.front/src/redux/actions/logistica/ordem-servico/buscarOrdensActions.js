@@ -298,9 +298,6 @@ export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => 
     'Empresa',
     'Proposta',
     'BaixadoPor',
-    'Escala',
-    'Escala.Veiculos',
-    'Escala.Funcionarios',
     'Escala.EscalaVeiculos.Veiculo',
     'Escala.EscalaFuncionarios.Funcionario'
   ]
@@ -326,9 +323,7 @@ export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => 
   if (porFuncionario && empresa && Number(empresa) > 0) {
     filterConditions.push({
       Empresa: {
-        id: {
-          $eq: Number(empresa)
-        }
+        id: Number(empresa)
       }
     })
   }
@@ -339,8 +334,7 @@ export const buscarOrdensRelatorio = (data1, data2, empresa, porFuncionario) => 
         $and: filterConditions
       },
       pagination: {
-        limit: 10000,
-        pageSize: 10000
+        pageSize: 1000
       },
       sort: {
         DataInicial: 'asc'
