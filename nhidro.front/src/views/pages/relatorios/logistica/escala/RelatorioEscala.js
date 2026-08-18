@@ -101,6 +101,7 @@ const RelatorioEscala = (props) => {
 
   useEffect(() => {
     props.buscarEmpresas()
+    handleFiltrarBtn(relatorio, dataInicial, dataFinal, empresa)
   }, [])
 
   useEffectAfterMount(() => {
@@ -116,22 +117,26 @@ const RelatorioEscala = (props) => {
 
   useEffect(() => {
     handleFiltrarBtn(relatorio, dataInicial, dataFinal, empresa)
-  }, [dataInicial, dataFinal, relatorio, empresa])
+  }, [relatorio, empresa])
 
   const handleDateUpdate = (setter) => (dates, dateStr) => {
     if (dates && dates[0] && moment(dates[0]).isValid()) {
       setter(dates[0])
-    } else if (dateStr) {
-      const m = moment(dateStr, ['DD-MM-YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D-M-YYYY', 'D/M/YYYY'])
-      if (m.isValid()) setter(m.toDate())
+    } else if (dateStr && dateStr.length >= 8) {
+      const m = moment(dateStr, ['DD/MM/YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D/M/YYYY', 'D-M-YYYY'])
+      if (m.isValid() && m.year() >= 1970) {
+        setter(m.toDate())
+      }
     }
   }
 
   const handleDateBlur = (setter) => (e) => {
     const val = e?.target?.value
-    if (val) {
-      const m = moment(val, ['DD-MM-YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D-M-YYYY', 'D/M/YYYY'])
-      if (m.isValid()) setter(m.toDate())
+    if (val && val.length >= 8) {
+      const m = moment(val, ['DD/MM/YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D/M/YYYY', 'D-M-YYYY'])
+      if (m.isValid() && m.year() >= 1970) {
+        setter(m.toDate())
+      }
     }
   }
 
@@ -158,10 +163,11 @@ const RelatorioEscala = (props) => {
                   menu: provided => ({ ...provided, zIndex: 9999 }),
                   control: provided => ({ ...provided, minHeight: 0, height: '3rem' })
                 }}
-                name="unidade"
-                options={relatorios}
-                isSearchable
-                value={relatorios.filter((option) => option.value === relatorio)}
+                name="relatorio"
+                options={opcoesRelatorio}
+                value={opcoesRelatorio.filter((option) => option.value === relatorio)}
+                getOptionLabel={(option) => option.label}
+                getOptionValue={(option) => option.value}
                 onChange={e => handleChangeRelatorio(e)}
               />
             </Col>
@@ -171,17 +177,16 @@ const RelatorioEscala = (props) => {
                 value={dataInicial}
                 onChange={handleDateUpdate(setDataInicial)}
                 onClose={handleDateUpdate(setDataInicial)}
-                onValueUpdate={handleDateUpdate(setDataInicial)}
                 onBlur={handleDateBlur(setDataInicial)}
                 className="form-control bg-white text-dark"
                 style={{ backgroundColor: "#ffffff", height: '3rem', cursor: 'pointer', color: '#222' }}
                 options={{
                   mode: 'single',
                   locale: Portuguese,
-                  dateFormat: 'd-m-Y',
+                  dateFormat: 'd/m/Y',
                   allowInput: true,
                   parseDate: (datestr) => {
-                    const m = moment(datestr, ['DD-MM-YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D-M-YYYY', 'D/M/YYYY'])
+                    const m = moment(datestr, ['DD/MM/YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D/M/YYYY', 'D-M-YYYY'])
                     return m.isValid() ? m.toDate() : new Date(datestr)
                   }
                 }}
@@ -195,17 +200,16 @@ const RelatorioEscala = (props) => {
                 value={dataFinal}
                 onChange={handleDateUpdate(setDataFinal)}
                 onClose={handleDateUpdate(setDataFinal)}
-                onValueUpdate={handleDateUpdate(setDataFinal)}
                 onBlur={handleDateBlur(setDataFinal)}
                 className="form-control bg-white text-dark"
                 style={{ backgroundColor: "#ffffff", height: '3rem', cursor: 'pointer', color: '#222' }}
                 options={{
                   mode: 'single',
                   locale: Portuguese,
-                  dateFormat: 'd-m-Y',
+                  dateFormat: 'd/m/Y',
                   allowInput: true,
                   parseDate: (datestr) => {
-                    const m = moment(datestr, ['DD-MM-YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D-M-YYYY', 'D/M/YYYY'])
+                    const m = moment(datestr, ['DD/MM/YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD', 'YYYY/MM/DD', 'DDMMYYYY', 'D/M/YYYY', 'D-M-YYYY'])
                     return m.isValid() ? m.toDate() : new Date(datestr)
                   }
                 }}
