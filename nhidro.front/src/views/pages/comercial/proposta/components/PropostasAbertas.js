@@ -125,6 +125,8 @@ const PropostasAbertas = (props) => {
             data.id = 0
             data.Enviada = false
             data.ehRevisao = true
+            data.UrlArquivo = null
+            data.NomeArquivo = null
             data.AlteradoPor = user
             data.DataAlteracao = new Date()
             props.cadastrarProposta({ data })

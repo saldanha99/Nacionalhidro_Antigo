@@ -83,6 +83,9 @@ module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
 
       await strapi.entityService.update("api::proposta.proposta", ultimaRevisao.id, { data: ultimaRevisao });
       data.Revisao = ultimaRevisao.Revisao + 1;
+      data.Enviada = false;
+      data.UrlArquivo = null;
+      data.NomeArquivo = null;
     } else {
       const maxCode = await strapi.entityService.findMany("api::proposta.proposta", {
         sort: { Codigo: "desc" },
@@ -120,6 +123,11 @@ module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
     }
   },
   alterar: async (data, user) => {
+    // Qualquer alteração invalida o PDF anterior. Se a nova geração falhar,
+    // o envio tentará gerar novamente em vez de anexar um arquivo desatualizado.
+    data.UrlArquivo = null;
+    data.NomeArquivo = null;
+
     if (!data.Codigo) {
       const maxCode = await strapi.entityService.findMany("api::proposta.proposta", {
         sort: { Codigo: "desc" },

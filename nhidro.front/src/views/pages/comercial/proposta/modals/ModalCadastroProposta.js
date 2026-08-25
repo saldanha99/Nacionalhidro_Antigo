@@ -106,21 +106,57 @@ const ModalCadastroProposta = (props) => {
         return true
     }
 
-    const gerarDescricaoValores = (proposta) => {
-        if (proposta.PropostaEquipamentos) {
-            let descricaoValores = ''
-            proposta.PropostaEquipamentos.forEach((x, i) => {
-                if (x.Equipamento && x.TipoCobranca && x.ValorCobranca) {
-                    const tipoCobranca = x.TipoCobranca === Enum_TiposCobranca.Diaria ? 'Valor diária por' : x.TipoCobranca === Enum_TiposCobranca.Hora ? 'Valor hora por' : x.TipoCobranca === Enum_TiposCobranca.Frete ? 'Valor frete por' : 'Valor fechado por'
-                    const mobilizazacao = `Valor por mobilização e desmobilização ${x.Equipamento.Equipamento}, horário comercial:\nR$ ${Number(x.ValorMobilizacao).toFixed(2)} (${numeroExtenso(Number(x.ValorMobilizacao).toFixed(2))})\n\n`
-                    const area = x.Area ? ` para área ${x.Area},` : ''
-                    const text = `     * ${tipoCobranca} ${x.Quantidade ?? 1} ${x.Equipamento.Equipamento},${area} horário comercial \nR$ ${Number(x.ValorCobranca).toFixed(2)}  (${numeroExtenso(Number(x.ValorCobranca))})\n${x.ValorMobilizacao ? mobilizazacao : ''}`
-                    descricaoValores = descricaoValores + text
-                }
-            })
-            proposta.DescricaoValores = descricaoValores
+    const obterComplementoDescricaoValores = (descricaoValores = '') => {
+        const indiceComplemento = descricaoValores.search(/(?:^|\n)\s*Valor compreende\s*:/i)
+        return indiceComplemento >= 0 ? descricaoValores.slice(indiceComplemento).trim() : ''
+    }
 
-            setProposta({... proposta, DescricaoValores: proposta.DescricaoValores})
+    const montarDescricaoValores = (propostaAtual) => {
+        if (!propostaAtual.PropostaEquipamentos) return propostaAtual.DescricaoValores || ''
+
+        let descricaoValores = ''
+        propostaAtual.PropostaEquipamentos.forEach((x) => {
+            if (x.Equipamento && x.TipoCobranca && x.ValorCobranca) {
+                const tipoCobranca = x.TipoCobranca === Enum_TiposCobranca.Diaria ? 'Valor diária por' : x.TipoCobranca === Enum_TiposCobranca.Hora ? 'Valor hora por' : x.TipoCobranca === Enum_TiposCobranca.Frete ? 'Valor frete por' : 'Valor fechado por'
+                const mobilizazacao = `Valor por mobilização e desmobilização ${x.Equipamento.Equipamento}, horário comercial:\nR$ ${Number(x.ValorMobilizacao).toFixed(2)} (${numeroExtenso(Number(x.ValorMobilizacao).toFixed(2))})\n\n`
+                const area = x.Area ? ` para área ${x.Area},` : ''
+                const text = `     * ${tipoCobranca} ${x.Quantidade ?? 1} ${x.Equipamento.Equipamento},${area} horário comercial \nR$ ${Number(x.ValorCobranca).toFixed(2)}  (${numeroExtenso(Number(x.ValorCobranca))})\n${x.ValorMobilizacao ? mobilizazacao : ''}`
+                descricaoValores += text
+            }
+        })
+
+        const complemento = obterComplementoDescricaoValores(propostaAtual.DescricaoValores)
+        return [descricaoValores.trim(), complemento].filter(Boolean).join('\n\n')
+    }
+
+    const atualizarRateioCondicaoPagamento = (condicaoPagamento = '', valorTotal = 0) => {
+        return condicaoPagamento.replace(
+            /(\d+(?:[.,]\d+)?)%(\s+do valor[^\n]*?\(R\$\s*)[\d.,]+(\))/gi,
+            (texto, percentual, prefixo, fechamento) => {
+                const percentualNumerico = Number(percentual.replace(',', '.'))
+                const valorRateio = Number(valorTotal) * (percentualNumerico / 100)
+                return `${percentual}%${prefixo}${valorRateio.toFixed(2)}${fechamento}`
+            }
+        )
+    }
+
+    const sincronizarValoresProposta = (propostaAtual) => {
+        const valor = (propostaAtual.PropostaEquipamentos || []).reduce((total, equipamento) => {
+            return total + (equipamento.Equipamento && equipamento.ValorTotal ? Number(equipamento.ValorTotal) : 0)
+        }, 0)
+        const propostaSincronizada = { ...propostaAtual, Valor: valor }
+
+        return {
+            ...propostaSincronizada,
+            DescricaoValores: montarDescricaoValores(propostaSincronizada),
+            CondicaoPagamento: atualizarRateioCondicaoPagamento(propostaSincronizada.CondicaoPagamento, valor)
+        }
+    }
+
+    const gerarDescricaoValores = (propostaAtual) => {
+        if (propostaAtual.PropostaEquipamentos) {
+            propostaAtual.DescricaoValores = montarDescricaoValores(propostaAtual)
+            setProposta({ ...propostaAtual, DescricaoValores: propostaAtual.DescricaoValores })
         }
     }
 
@@ -220,16 +256,9 @@ const ModalCadastroProposta = (props) => {
         }
     }
 
-    const calcularValorProposta = (proposta) => {
-        if (proposta.PropostaEquipamentos) {
-            let valor = 0
-            proposta.PropostaEquipamentos.forEach((x, i) => {
-                if (x.Equipamento && x.ValorTotal) {
-                    valor += x.ValorTotal
-                }
-            })
-
-            setProposta({... proposta, Valor: valor})
+    const calcularValorProposta = (propostaAtual) => {
+        if (propostaAtual.PropostaEquipamentos) {
+            setProposta(sincronizarValoresProposta(propostaAtual))
         }
     }
 
@@ -1270,7 +1299,11 @@ const ModalCadastroProposta = (props) => {
                             disabled={!isValid}
                             color="primary"
                             className="mr-1 mb-1"
-                            onClick={e => save(proposta)}
+                            onClick={() => {
+                                const propostaSincronizada = sincronizarValoresProposta(proposta)
+                                setProposta(propostaSincronizada)
+                                save(propostaSincronizada)
+                            }}
                         >
                             {proposta.Enviada ? 'Gerar Revisão' : 'Salvar Proposta'}
                         </Button.Ripple>
