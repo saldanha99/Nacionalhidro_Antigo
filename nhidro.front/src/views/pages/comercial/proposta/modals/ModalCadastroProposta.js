@@ -165,9 +165,12 @@ const ModalCadastroProposta = (props) => {
             return total + (equipamento.Equipamento && equipamento.ValorTotal ? Number(equipamento.ValorTotal) : 0)
         }, 0)
         const propostaSincronizada = { ...propostaAtual, Valor: valor }
+        const descricaoValores = montarDescricaoValores(propostaSincronizada)
 
         return {
             ...propostaSincronizada,
+            DescricaoValores: descricaoValores.DescricaoValores,
+            DescricaoValoresAux: descricaoValores.DescricaoValoresAux,
             CondicaoPagamento: atualizarRateioCondicaoPagamento(propostaSincronizada.CondicaoPagamento, valor)
         }
     }
