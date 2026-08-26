@@ -12,31 +12,52 @@ moment.locale('pt-br');
 const { createCoreService } = require('@strapi/strapi').factories;
 
 // Função genérica para salvar ou atualizar elementos relacionados
-const salvarRelacionados = async (entity, itens, strapi) => {
+const salvarRelacionados = async (entity, itens, strapi, preservarOriginais = false) => {
   if (!Array.isArray(itens) || itens.length === 0) return;
 
   const tasks = itens.map(async (item) => {
+    const itemParaSalvar = { ...item };
+
     // Criar novo registro, se necessário
-    if (item.id === 0) {
-      const novoItem = await strapi.entityService.create(entity, { data: item });
-      return { ...item, id: novoItem.id };
+    if (itemParaSalvar.id === 0) {
+      delete itemParaSalvar.id;
+      const novoItem = await strapi.entityService.create(entity, { data: itemParaSalvar });
+      return { ...itemParaSalvar, id: novoItem.id };
     }
 
-    // Atualizar ou recriar itens existentes
-    if (item.id > 0) {
-      await strapi.entityService.delete(entity, item.id);
-      delete item.id;
+    // Em uma revisão, clonar o item sem apagar o vínculo da revisão anterior.
+    // Em uma alteração normal, manter o comportamento de recriação existente.
+    if (itemParaSalvar.id > 0) {
+      if (!preservarOriginais) {
+        await strapi.entityService.delete(entity, itemParaSalvar.id);
+      }
+      delete itemParaSalvar.id;
     }
 
-    const novoItem = await strapi.entityService.create(entity, { data: item });
-    return { ...item, id: novoItem.id };
+    const novoItem = await strapi.entityService.create(entity, { data: itemParaSalvar });
+    return { ...itemParaSalvar, id: novoItem.id };
   });
 
   return Promise.all(tasks);
 };
 
+// Acessórios com id são cadastros compartilhados e devem apenas ser vinculados.
+// Somente acessórios novos, cadastrados dentro da proposta, precisam ser criados.
+const salvarAcessorios = async (itens, strapi) => {
+  if (!Array.isArray(itens) || itens.length === 0) return;
+
+  return Promise.all(itens.map(async (item) => {
+    if (item.id > 0) return item;
+
+    const itemParaSalvar = { ...item };
+    delete itemParaSalvar.id;
+    const novoItem = await strapi.entityService.create("api::acessorio.acessorio", { data: itemParaSalvar });
+    return { ...itemParaSalvar, id: novoItem.id };
+  }));
+};
+
 // Serviço principal para salvar dados da proposta
-const salvarDadosProposta = async (proposta, strapi) => {
+const salvarDadosProposta = async (proposta, strapi, preservarRelacionados = false) => {
   const { 
     Acessorios, 
     PropostaEquipes, 
@@ -44,17 +65,19 @@ const salvarDadosProposta = async (proposta, strapi) => {
     PropostaEquipamentos 
   } = proposta;
 
-  proposta.Acessorios = await salvarRelacionados("api::acessorio.acessorio", Acessorios, strapi);
-  proposta.PropostaEquipes = await salvarRelacionados("api::proposta-equipe.proposta-equipe", PropostaEquipes, strapi);
+  proposta.Acessorios = await salvarAcessorios(Acessorios, strapi);
+  proposta.PropostaEquipes = await salvarRelacionados("api::proposta-equipe.proposta-equipe", PropostaEquipes, strapi, preservarRelacionados);
   proposta.PropostaResponsabilidades = await salvarRelacionados(
     "api::proposta-responsabilidade.proposta-responsabilidade",
     PropostaResponsabilidades,
-    strapi
+    strapi,
+    preservarRelacionados
   );
   proposta.PropostaEquipamentos = await salvarRelacionados(
     "api::proposta-equipamento.proposta-equipamento",
     PropostaEquipamentos,
-    strapi
+    strapi,
+    preservarRelacionados
   );
 
   return proposta;
@@ -62,6 +85,8 @@ const salvarDadosProposta = async (proposta, strapi) => {
 
 module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
   cadastrar: async (data, user) => {
+    const ehRevisao = Boolean(data.ehRevisao);
+
     // Remover dados relacionados temporariamente
     const { 
       PropostaEquipes, 
@@ -74,7 +99,7 @@ module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
     delete data.PropostaResponsabilidades;
     delete data.PropostaEquipamentos;
 
-    if (data.ehRevisao) {
+    if (ehRevisao) {
       const ultimaRevisao = await strapi.db.query("api::proposta.proposta").findOne({
         where: { codigo: data.Codigo },
         orderBy: { Revisao: "desc" },
@@ -107,7 +132,10 @@ module.exports = createCoreService("api::proposta.proposta", ({ strapi }) => ({
 
     try {
       // Salvar dados relacionados
-      const propostaCompleta = await salvarDadosProposta(entry, strapi);
+      if (ehRevisao) {
+        console.log(`[Proposta ${data.Codigo}] Clonando dados relacionados para a revisão ${data.Revisao} sem alterar a revisão anterior.`);
+      }
+      const propostaCompleta = await salvarDadosProposta(entry, strapi, ehRevisao);
 
       // Atualizar a proposta com os dados relacionados
       await strapi.entityService.update("api::proposta.proposta", propostaCompleta.id, { data: propostaCompleta });
