@@ -106,13 +106,29 @@ const ModalCadastroProposta = (props) => {
         return true
     }
 
-    const obterComplementoDescricaoValores = (descricaoValores = '') => {
-        const indiceComplemento = descricaoValores.search(/(?:^|\n)\s*Valor compreende\s*:/i)
+    const obterComplementoDescricaoValores = (propostaAtual) => {
+        const descricaoValores = propostaAtual.DescricaoValores || ''
+        const descricaoAutomaticaAnterior = (propostaAtual.DescricaoValoresAux || '').trim()
+
+        if (descricaoAutomaticaAnterior && descricaoValores.trim().startsWith(descricaoAutomaticaAnterior)) {
+            return descricaoValores.trim().slice(descricaoAutomaticaAnterior.length).trim()
+        }
+
+        // Compatibilidade com propostas antigas, que ainda não possuem o texto
+        // automático salvo separadamente. Tudo a partir destes marcadores é manual.
+        const indiceComplemento = descricaoValores.search(
+            /(?:^|\n)\s*(?:Valor compreende\s*:|\*?\s*Deslocamento\b|2\s*[º°ªo]?\s*Turno\b|S[áa]bados?\b|Domingos?\b)/i
+        )
         return indiceComplemento >= 0 ? descricaoValores.slice(indiceComplemento).trim() : ''
     }
 
     const montarDescricaoValores = (propostaAtual) => {
-        if (!propostaAtual.PropostaEquipamentos) return propostaAtual.DescricaoValores || ''
+        if (!propostaAtual.PropostaEquipamentos) {
+            return {
+                DescricaoValores: propostaAtual.DescricaoValores || '',
+                DescricaoValoresAux: propostaAtual.DescricaoValoresAux || ''
+            }
+        }
 
         let descricaoValores = ''
         propostaAtual.PropostaEquipamentos.forEach((x) => {
@@ -125,8 +141,12 @@ const ModalCadastroProposta = (props) => {
             }
         })
 
-        const complemento = obterComplementoDescricaoValores(propostaAtual.DescricaoValores)
-        return [descricaoValores.trim(), complemento].filter(Boolean).join('\n\n')
+        const descricaoAutomatica = descricaoValores.trim()
+        const complemento = obterComplementoDescricaoValores(propostaAtual)
+        return {
+            DescricaoValores: [descricaoAutomatica, complemento].filter(Boolean).join('\n\n'),
+            DescricaoValoresAux: descricaoAutomatica
+        }
     }
 
     const atualizarRateioCondicaoPagamento = (condicaoPagamento = '', valorTotal = 0) => {
@@ -148,15 +168,20 @@ const ModalCadastroProposta = (props) => {
 
         return {
             ...propostaSincronizada,
-            DescricaoValores: montarDescricaoValores(propostaSincronizada),
             CondicaoPagamento: atualizarRateioCondicaoPagamento(propostaSincronizada.CondicaoPagamento, valor)
         }
     }
 
     const gerarDescricaoValores = (propostaAtual) => {
         if (propostaAtual.PropostaEquipamentos) {
-            propostaAtual.DescricaoValores = montarDescricaoValores(propostaAtual)
-            setProposta({ ...propostaAtual, DescricaoValores: propostaAtual.DescricaoValores })
+            const descricaoValores = montarDescricaoValores(propostaAtual)
+            propostaAtual.DescricaoValores = descricaoValores.DescricaoValores
+            propostaAtual.DescricaoValoresAux = descricaoValores.DescricaoValoresAux
+            setProposta({
+                ...propostaAtual,
+                DescricaoValores: propostaAtual.DescricaoValores,
+                DescricaoValoresAux: propostaAtual.DescricaoValoresAux
+            })
         }
     }
 
