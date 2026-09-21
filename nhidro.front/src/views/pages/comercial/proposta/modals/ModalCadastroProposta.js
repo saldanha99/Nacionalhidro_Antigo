@@ -21,6 +21,7 @@ const ModalCadastroProposta = (props) => {
     const [responsabilidadesDisponiveis, setResponsabilidadesDisponiveis] = useState([])
     const [toggleDados, setToggleDados] = useState(false)
     const [error, setError] = useState('')
+    const isRevisao = proposta?.id && (proposta?.Enviada || proposta?.ehRevisao)
 
     const options = [{ label: 'Sim', value: true }, { label: 'Não', value: false }]
     const optionsTipo = [{ label: 'Contratante', value: Enum_TipoResponsabilidade.Contratante }, { label: 'Contratado', value: Enum_TipoResponsabilidade.Contratado }]
@@ -106,28 +107,9 @@ const ModalCadastroProposta = (props) => {
         return true
     }
 
-    const obterComplementoDescricaoValores = (propostaAtual) => {
-        const descricaoValores = propostaAtual.DescricaoValores || ''
-        const descricaoAutomaticaAnterior = (propostaAtual.DescricaoValoresAux || '').trim()
-
-        if (descricaoAutomaticaAnterior && descricaoValores.trim().startsWith(descricaoAutomaticaAnterior)) {
-            return descricaoValores.trim().slice(descricaoAutomaticaAnterior.length).trim()
-        }
-
-        // Compatibilidade com propostas antigas, que ainda não possuem o texto
-        // automático salvo separadamente. Tudo a partir destes marcadores é manual.
-        const indiceComplemento = descricaoValores.search(
-            /(?:^|\n)\s*(?:Valor compreende\s*:|\*?\s*Deslocamento\b|2\s*[º°ªo]?\s*Turno\b|S[áa]bados?\b|Domingos?\b)/i
-        )
-        return indiceComplemento >= 0 ? descricaoValores.slice(indiceComplemento).trim() : ''
-    }
-
-    const montarDescricaoValores = (propostaAtual) => {
+    const montarDescricaoValoresAutomatico = (propostaAtual) => {
         if (!propostaAtual.PropostaEquipamentos) {
-            return {
-                DescricaoValores: propostaAtual.DescricaoValores || '',
-                DescricaoValoresAux: propostaAtual.DescricaoValoresAux || ''
-            }
+            return ''
         }
 
         let descricaoValores = ''
@@ -141,8 +123,49 @@ const ModalCadastroProposta = (props) => {
             }
         })
 
-        const descricaoAutomatica = descricaoValores.trim()
+        return descricaoValores.trim()
+    }
+
+    const obterComplementoDescricaoValores = (propostaAtual) => {
+        const descricaoValores = (propostaAtual.DescricaoValores || '').trim()
+        const descricaoAutomaticaAnterior = (propostaAtual.DescricaoValoresAux || '').trim()
+        const descricaoAutomaticaAtual = montarDescricaoValoresAutomatico(propostaAtual)
+
+        if (descricaoAutomaticaAnterior && descricaoValores.trim().startsWith(descricaoAutomaticaAnterior)) {
+            return descricaoValores.trim().slice(descricaoAutomaticaAnterior.length).trim()
+        }
+
+        if (descricaoAutomaticaAtual && descricaoValores.startsWith(descricaoAutomaticaAtual)) {
+            return descricaoValores.slice(descricaoAutomaticaAtual.length).trim()
+        }
+
+        // Compatibilidade com propostas antigas, que ainda não possuem o texto
+        // automático salvo separadamente. Tudo a partir destes marcadores é manual.
+        const indiceComplemento = descricaoValores.search(
+            /(?:^|\n)\s*(?:Valor compreende\s*:|\*?\s*Deslocamento\b|2\s*[º°ªo]?\s*Turno\b|S[áa]bados?\b|Domingos?\b)/i
+        )
+        return indiceComplemento >= 0 ? descricaoValores.slice(indiceComplemento).trim() : descricaoValores
+    }
+
+    const montarDescricaoValores = (propostaAtual) => {
+        if (!propostaAtual.PropostaEquipamentos) {
+            return {
+                DescricaoValores: propostaAtual.DescricaoValores || '',
+                DescricaoValoresAux: propostaAtual.DescricaoValoresAux || ''
+            }
+        }
+
+        const descricaoAutomatica = montarDescricaoValoresAutomatico(propostaAtual)
         const complemento = obterComplementoDescricaoValores(propostaAtual)
+        const descricaoAtual = (propostaAtual.DescricaoValores || '').trim()
+
+        if (complemento === descricaoAtual && descricaoAtual) {
+            return {
+                DescricaoValores: descricaoAtual,
+                DescricaoValoresAux: descricaoAutomatica || propostaAtual.DescricaoValoresAux || ''
+            }
+        }
+
         return {
             DescricaoValores: [descricaoAutomatica, complemento].filter(Boolean).join('\n\n'),
             DescricaoValoresAux: descricaoAutomatica
@@ -1333,7 +1356,7 @@ const ModalCadastroProposta = (props) => {
                                 save(propostaSincronizada)
                             }}
                         >
-                            {proposta.Enviada ? 'Gerar Revisão' : 'Salvar Proposta'}
+                            {isRevisao ? 'Gerar Revisão' : 'Salvar Proposta'}
                         </Button.Ripple>
                     </ModalFooter>
                 </Modal>

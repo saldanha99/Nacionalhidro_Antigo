@@ -396,8 +396,9 @@ const PropostasAbertas = (props) => {
                       copy.Revisao = 0;
                       copy.Usuario = user;
                       copy.DataProposta = null;
-                      copy.Enviada = null;
-                      copy.Codigo = null;
+                      copy.Enviada = true;
+                      copy.Codigo = row.original.Codigo;
+                      copy.ehRevisao = true;
                       copy.DataStatus = null;
                       copy.AlteradoPor = null;
                       copy.DataAlteracao = null;
