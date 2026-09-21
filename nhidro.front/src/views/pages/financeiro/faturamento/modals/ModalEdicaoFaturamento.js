@@ -86,7 +86,7 @@ const ModalEdicaoFaturamento = (props) => {
       else if (faturamento.TipoFatura === 'NF') {
         let dados = faturamento.DadosFaturamento ?? {
           servico: {
-            iss_retido: 1,
+            iss_retido: false,
             aliquota_pis: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 0.65,
             aliquota_cofins: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 3,
             aliquota_ir: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 1,
@@ -102,35 +102,45 @@ const ModalEdicaoFaturamento = (props) => {
               tributavel: true
             }
           ],
-          natureza_operacao: faturamento.Cliente.CodigoMunicipio === faturamento.Empresa.CodigoMunicipio ? '1' : '2',
+          natureza_operacao: '1',
           optante_simples_nacional: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? true : false
         }
 
+        const isPessoaFisica = faturamento.Cliente?.TipoPessoa === 1 || (!faturamento.Cliente?.Cnpj && faturamento.Cliente?.Cpf);
+        const tomadorDoc = (isPessoaFisica ? (faturamento.Cliente?.Cpf || faturamento.Cliente?.Cnpj) : (faturamento.Cliente?.Cnpj || faturamento.Cliente?.Cpf))?.replace(/\D/g, '');
+
         dados.prestador = {
-          cnpj: faturamento.Empresa.CNPJ,
-          inscricao_municipal: faturamento.Empresa.InscricaoMunicipal,
-          codigo_municipio: faturamento.Empresa.CodigoMunicipio
+          cnpj: faturamento.Empresa?.CNPJ?.replace(/\D/g, ''),
+          inscricao_municipal: faturamento.Empresa?.InscricaoMunicipal?.replace(/\D/g, ''),
+          codigo_municipio: faturamento.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502'
         }
         dados.tomador = {
-          cnpj: faturamento.Cliente.Cnpj,
-          razao_social: faturamento.Cliente.RazaoSocial,
-          telefone: faturamento.Cliente.Telefone?.trimEnd(),
-          email: faturamento.Cliente.Email?.trimEnd(),
-          inscricao_municipal: faturamento.Cliente.InscricaoMunicipal ?? '000000',
+          razao_social: faturamento.Cliente?.RazaoSocial,
+          telefone: faturamento.Cliente?.Telefone?.trimEnd(),
+          email: faturamento.Cliente?.Email?.trimEnd(),
+          inscricao_municipal: faturamento.Cliente?.InscricaoMunicipal ? faturamento.Cliente.InscricaoMunicipal.replace(/\D/g, '') : '000000',
           endereco: {
-            logradouro: faturamento.Cliente.Endereco?.trimEnd(),
-            numero: faturamento.Cliente.Numero?.trimEnd(),
-            complemento: faturamento.Cliente.Complemento?.trimEnd(),
-            bairro: faturamento.Cliente.Bairro?.trimEnd(),
-            cep: faturamento.Cliente.Cep?.trimEnd(),
-            uf: faturamento.Cliente.EstadoSigla?.trimEnd(),
-            codigo_municipio: faturamento.Cliente.CodigoMunicipio?.trimEnd()
+            logradouro: faturamento.Cliente?.Endereco?.trimEnd(),
+            numero: faturamento.Cliente?.Numero?.trimEnd(),
+            complemento: faturamento.Cliente?.Complemento?.trimEnd(),
+            bairro: faturamento.Cliente?.Bairro?.trimEnd(),
+            cep: faturamento.Cliente?.Cep ? faturamento.Cliente.Cep.replace(/\D/g, '') : '',
+            uf: faturamento.Cliente?.EstadoSigla?.trimEnd(),
+            codigo_municipio: faturamento.Cliente?.CodigoMunicipio?.replace(/\D/g, '')
           }
         }
-        dados.servico.codigo_municipio = faturamento.Cliente.CodigoMunicipio
-        dados.servico.codigo_cnae = faturamento.Empresa.Cnae
+        if (isPessoaFisica) {
+          dados.tomador.cpf = tomadorDoc;
+          delete dados.tomador.cnpj;
+        } else {
+          dados.tomador.cnpj = tomadorDoc;
+          delete dados.tomador.cpf;
+        }
+        dados.natureza_operacao = '1'
+        dados.servico.codigo_municipio = faturamento.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502'
+        dados.servico.codigo_cnae = faturamento.Empresa?.Cnae
         dados.servico.item_lista_servico = '0710'
-        dados.tributacao_rps = faturamento.Cliente.CodigoMunicipio === faturamento.Empresa.CodigoMunicipio ? 'T' : 'E'
+        dados.tributacao_rps = 'T'
         setDadosFatura(dados)
       }
       setAba(1)
@@ -141,7 +151,7 @@ const ModalEdicaoFaturamento = (props) => {
   const isButtonDisabled = model.TipoFatura === 'CTE' ? (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento || !dadosFatura.cfop || !dadosFatura.natureza_operacao || !dadosFatura.uf_envio || !dadosFatura.municipio_envio || !dadosFatura.uf_inicio || !dadosFatura.municipio_inicio
     || !dadosFatura.uf_fim || !dadosFatura.municipio_fim || !dadosFatura.indicador_inscricao_estadual_tomador || !dadosFatura.tomador || !dadosFatura.valor_total || !dadosFatura.valor_receber || !dadosFatura.cnpj_cliente
     || !dadosFatura.inscricao_estadual_cliente || !dadosFatura.nome_cliente || !dadosFatura.logradouro_cliente || !dadosFatura.numero_cliente || !dadosFatura.bairro_cliente || !dadosFatura.cep_cliente || !dadosFatura.uf_cliente || !dadosFatura.municipio_cliente || !dadosFatura.icms_situacao_tributaria)
-    : model.TipoFatura === 'NF' ? (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento || !dadosFatura.servico.iss_retido || !dadosFatura.servico.aliquota || !dadosFatura.itens.length)
+    : model.TipoFatura === 'NF' ? (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento || dadosFatura?.servico?.iss_retido === undefined || dadosFatura?.servico?.iss_retido === null || dadosFatura?.servico?.iss_retido === '' || !dadosFatura?.servico?.aliquota || !dadosFatura?.itens?.length)
     : (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento);
 
   const salvarCTE = (cidades, salvar) => {
@@ -248,6 +258,14 @@ const ModalEdicaoFaturamento = (props) => {
     dadosFatura.servico.valor_ir = model.ValorRateado * (dadosFatura.servico?.aliquota_ir || 0) / 100
     dadosFatura.servico.valor_csll = model.ValorRateado * (dadosFatura.servico?.aliquota_csll || 0) / 100
     // dadosFatura.servico.valor_iss = model.ValorRateado * (dadosFatura.servico?.aliquota || 0) / 100
+
+    // Garantir regras tributárias de Campinas e booleano no iss_retido
+    dadosFatura.servico.iss_retido = dadosFatura.servico?.iss_retido === true || dadosFatura.servico?.iss_retido === 'true' || dadosFatura.servico?.iss_retido === 1 || dadosFatura.servico?.iss_retido === '1';
+    dadosFatura.natureza_operacao = dadosFatura.natureza_operacao || '1';
+    dadosFatura.tributacao_rps = 'T';
+    if (dadosFatura.natureza_operacao === '1') {
+      dadosFatura.servico.codigo_municipio = model.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
+    }
 
     for (var property in dadosFatura) {
       if (typeof dadosFatura[property] === 'string') dadosFatura[property] = dadosFatura[property]?.trimEnd()

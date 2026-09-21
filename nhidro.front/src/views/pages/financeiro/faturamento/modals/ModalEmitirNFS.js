@@ -65,13 +65,18 @@ const ModalEmitirNFS = (props) => {
   }, [modal])
 
   const isButtonDisabled = (!model?.EmpresaBanco || !model.data_emissao_aux || !model.data_vencimento || !model.empresa_id || !model.tomador?.cnpj || !model.tomador?.razao_social || !model.tomador?.endereco?.logradouro
-    || !model.tomador?.endereco?.numero || !model.tomador?.endereco?.bairro || !model.tomador?.endereco?.cep || !model.tomador?.endereco?.uf || !model.tomador?.endereco?.codigo_municipio || !model.servico?.iss_retido || !model.servico?.item_lista_servico || !model.servico?.codigo_cnae
+    || !model.tomador?.endereco?.numero || !model.tomador?.endereco?.bairro || !model.tomador?.endereco?.cep || !model.tomador?.endereco?.uf || !model.tomador?.endereco?.codigo_municipio || model.servico?.iss_retido === undefined || model.servico?.iss_retido === null || model.servico?.iss_retido === '' || !model.servico?.item_lista_servico || !model.servico?.codigo_cnae
     || !model.servico?.aliquota || !model.itens?.length || !model.tributacao_rps);
 
   const salvar = () => {
     const time = `${new Date().getHours()}:${new Date().getMinutes()}:${new Date().getSeconds()}`
     model.data_emissao = moment(`${model.data_emissao_aux} ${time}`, 'YYYY-MM-DD HH:mm:ss').format()
     model.servico.discriminacao = `${model.servico.discriminacao_aux}.\nVENCIMENTO: ${moment(model.data_vencimento).format('DD/MM/YYYY')}.\nDADOS PARA DEPÓSITO: Banco: ${model.EmpresaBanco?.Banco} Ag: ${model.EmpresaBanco?.Agencia} C/C: ${model.EmpresaBanco?.Conta}`
+    model.natureza_operacao = model.natureza_operacao || '1';
+    model.tributacao_rps = 'T';
+    if (model.servico) {
+      model.servico.iss_retido = model.servico.iss_retido === true || model.servico.iss_retido === 'true' || model.servico.iss_retido === 1 || model.servico.iss_retido === '1';
+    }
     for (var property in model) {
       if (typeof model[property] === 'string') model[property] = model[property]?.trim()
     }

@@ -32,18 +32,65 @@ const nfse = async (faturamento, cliente) => {
 
     let body = JSON.parse(JSON.stringify(faturamento.DadosFaturamento));
 
-    delete body.servico.discriminacao_aux;
+    delete body.servico?.discriminacao_aux;
     delete body.EmpresaBanco;
     delete body.data_vencimento;
     delete body.data_emissao_aux;
+    delete body.iss_retido;
     cleanEmptyFields(body);
-    body.natureza_operacao = body.tomador.endereco.codigo_municipio === body.prestador.codigo_municipio ? '1' : '2';
-    body.servico.valor_servicos = body.itens.reduce((total, item) => total + item.valor_total, 0);
-    body.servico.iss_retido = 1;
-    body.iss_retido = body.tomador.endereco.codigo_municipio === body.prestador.codigo_municipio ? 1 : 2;
 
-    console.log(body);
-    faturamento.FocusReferencia = 'fat_' + faturamento.id + '_' + moment(new Date).utc().format("YYYYMMDDhhmmss");
+    // Sanitização e formatação do prestador
+    if (body.prestador) {
+        if (body.prestador.cnpj) body.prestador.cnpj = body.prestador.cnpj.replace(/\D/g, '');
+        if (body.prestador.inscricao_municipal) body.prestador.inscricao_municipal = body.prestador.inscricao_municipal.replace(/\D/g, '');
+        if (body.prestador.codigo_municipio) body.prestador.codigo_municipio = body.prestador.codigo_municipio.replace(/\D/g, '');
+    }
+
+    // Sanitização e formatação do tomador
+    if (body.tomador) {
+        if (body.tomador.cnpj) body.tomador.cnpj = body.tomador.cnpj.replace(/\D/g, '');
+        if (body.tomador.cpf) body.tomador.cpf = body.tomador.cpf.replace(/\D/g, '');
+        if (body.tomador.inscricao_municipal) {
+            body.tomador.inscricao_municipal = body.tomador.inscricao_municipal.replace(/\D/g, '') || '000000';
+        } else {
+            body.tomador.inscricao_municipal = '000000';
+        }
+        if (body.tomador.endereco) {
+            if (body.tomador.endereco.cep) body.tomador.endereco.cep = body.tomador.endereco.cep.replace(/\D/g, '');
+            if (body.tomador.endereco.codigo_municipio) body.tomador.endereco.codigo_municipio = body.tomador.endereco.codigo_municipio.replace(/\D/g, '');
+            if (body.tomador.endereco.logradouro) body.tomador.endereco.logradouro = body.tomador.endereco.logradouro.trim();
+            if (body.tomador.endereco.numero) body.tomador.endereco.numero = body.tomador.endereco.numero.trim();
+            if (body.tomador.endereco.bairro) body.tomador.endereco.bairro = body.tomador.endereco.bairro.trim();
+            if (body.tomador.endereco.uf) body.tomador.endereco.uf = body.tomador.endereco.uf.trim();
+        }
+    }
+
+    // Regras tributárias municipais (Campinas/SP): prestador sediado em Campinas (3509502)
+    body.natureza_operacao = body.natureza_operacao || '1';
+    body.tributacao_rps = 'T';
+
+    if (!body.servico) body.servico = {};
+    if (body.natureza_operacao === '1') {
+        body.servico.codigo_municipio = body.prestador?.codigo_municipio || '3509502';
+    }
+
+    if (body.itens && Array.isArray(body.itens)) {
+        body.servico.valor_servicos = body.itens.reduce((total, item) => total + (Number(item.valor_total) || 0), 0);
+        body.itens.forEach(item => {
+            if (item.discriminacao) item.discriminacao = item.discriminacao.replace(/\uFFFD/g, ' ');
+        });
+    }
+
+    if (body.servico.discriminacao) {
+        body.servico.discriminacao = body.servico.discriminacao.replace(/\uFFFD/g, ' ');
+    }
+
+    // iss_retido deve ser booleano conforme schema Focus NFe
+    const isRetido = body.servico.iss_retido === true || body.servico.iss_retido === 'true' || body.servico.iss_retido === 1 || body.servico.iss_retido === '1';
+    body.servico.iss_retido = isRetido;
+
+    console.log('[nfse] Body preparado para Focus NFe:', JSON.stringify(body, null, 2));
+    faturamento.FocusReferencia = 'fat_' + faturamento.id + '_' + moment(new Date).utc().format("YYYYMMDDHHmmss");
     var options = {
         'method': 'POST',
         'url': api.Valor + '/v2/nfse?ref=' + faturamento.FocusReferencia,
@@ -55,24 +102,27 @@ const nfse = async (faturamento, cliente) => {
             'password': ''
         },
         body: JSON.stringify(body)
-
     };
 
     const req = await new Promise((resolve, reject) => {
         request(options, function (error, response) {
             if (error) {
-                throw new Error(error);
+                return reject(error);
             }
-            resolve(JSON.parse(response.body));
+            try {
+                resolve(JSON.parse(response.body));
+            } catch (err) {
+                reject(new Error('Resposta inválida da Focus NFe: ' + response.body));
+            }
         });
     });
 
-    console.log(req)
-    const retorno = {}
+    console.log('[nfse] Resposta Focus NFe:', req);
+    const retorno = {};
     retorno.msg = req;
-    retorno.success = req.status === 'processando_autorizacao';
-    return { faturamento, retorno }
-}
+    retorno.success = req.status === 'processando_autorizacao' || req.status === 'autorizado';
+    return { faturamento, retorno };
+};
 
 const rl = async (faturamento, cliente) => {
     try {
@@ -130,7 +180,7 @@ const cte = async (faturamento, cliente) => {
 
     body.observacao = `${body.observacao}. DADOS DE PAGAMENTO Banco: ${faturamento?.EmpresaBanco?.Banco} Ag: ${faturamento?.EmpresaBanco?.Agencia} C/C: ${faturamento?.EmpresaBanco?.Conta}`
     console.log(body);
-    faturamento.FocusReferencia = 'fat_' + faturamento.id + '_' + moment(new Date).utc().format("YYYYMMDDhhmmss");
+    faturamento.FocusReferencia = 'fat_' + faturamento.id + '_' + moment(new Date).utc().format("YYYYMMDDHHmmss");
 
     var options = {
         'method': 'POST',
@@ -469,8 +519,9 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         faturamento.Nota = data.numero;
         faturamento.UrlArquivoNota = data.url;
         faturamento.Status = data.status === 'autorizado' ? Enum_StatusFaturamento.Emitido : Enum_StatusFaturamento.Falha;
-        faturamento.Observacoes = `${faturamento.Observacoes}; ${data.erros ? data.erros[0]?.mensagem || '' : ''}`;
-        console.log(faturamento);
+        const msgErro = data.erros ? data.erros.map(e => `${e.codigo ? e.codigo + ': ' : ''}${e.mensagem}`).join('; ') : (data.mensagem_sefaz || '');
+        faturamento.Observacoes = msgErro ? `${faturamento.Observacoes || ''}; ${msgErro}` : faturamento.Observacoes;
+        console.log('[focus_web_hook_nfse] Faturamento atualizado:', faturamento.id, 'status:', faturamento.Status);
         await strapi.entityService.update('api::faturamento.faturamento', faturamento.id, {
             data: faturamento
         });
@@ -531,19 +582,46 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         });
         delete data.empresa;
         delete data.empresa_id;
-        delete data.servico.discriminacao_aux
+        delete data.servico?.discriminacao_aux;
         delete data.EmpresaBanco;
         delete data.data_vencimento;
         delete data.data_emissao_aux;
+        delete data.iss_retido;
         cleanEmptyFields(data);
 
-        // data.tomador.inscricao_municipal = "000664332"
-
-        if (data.servico.iss_retido === true) {
-            data.servico.codigo_municipio = data.tomador.codigo_municipio;
+        if (data.prestador) {
+            if (data.prestador.cnpj) data.prestador.cnpj = data.prestador.cnpj.replace(/\D/g, '');
+            if (data.prestador.inscricao_municipal) data.prestador.inscricao_municipal = data.prestador.inscricao_municipal.replace(/\D/g, '');
+            if (data.prestador.codigo_municipio) data.prestador.codigo_municipio = data.prestador.codigo_municipio.replace(/\D/g, '');
         }
-        console.log(data);
-        const referencia = 'fat_' + empresa.Descricao + '_' + moment(new Date).utc().format("YYYYMMDDhhmmss");
+        if (data.tomador) {
+            if (data.tomador.cnpj) data.tomador.cnpj = data.tomador.cnpj.replace(/\D/g, '');
+            if (data.tomador.cpf) data.tomador.cpf = data.tomador.cpf.replace(/\D/g, '');
+            if (data.tomador.inscricao_municipal) {
+                data.tomador.inscricao_municipal = data.tomador.inscricao_municipal.replace(/\D/g, '') || '000000';
+            } else {
+                data.tomador.inscricao_municipal = '000000';
+            }
+            if (data.tomador.endereco) {
+                if (data.tomador.endereco.cep) data.tomador.endereco.cep = data.tomador.endereco.cep.replace(/\D/g, '');
+                if (data.tomador.endereco.codigo_municipio) data.tomador.endereco.codigo_municipio = data.tomador.endereco.codigo_municipio.replace(/\D/g, '');
+                if (data.tomador.endereco.logradouro) data.tomador.endereco.logradouro = data.tomador.endereco.logradouro.trim();
+                if (data.tomador.endereco.numero) data.tomador.endereco.numero = data.tomador.endereco.numero.trim();
+                if (data.tomador.endereco.bairro) data.tomador.endereco.bairro = data.tomador.endereco.bairro.trim();
+                if (data.tomador.endereco.uf) data.tomador.endereco.uf = data.tomador.endereco.uf.trim();
+            }
+        }
+
+        data.natureza_operacao = data.natureza_operacao || '1';
+        data.tributacao_rps = 'T';
+        if (!data.servico) data.servico = {};
+        if (data.natureza_operacao === '1') {
+            data.servico.codigo_municipio = data.prestador?.codigo_municipio || empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
+        }
+        const isRetido = data.servico.iss_retido === true || data.servico.iss_retido === 'true' || data.servico.iss_retido === 1 || data.servico.iss_retido === '1';
+        data.servico.iss_retido = isRetido;
+
+        const referencia = 'fat_' + (empresa.Descricao || 'emp') + '_' + moment(new Date).utc().format("YYYYMMDDHHmmss");
 
         var options = {
             'method': 'POST',
@@ -556,23 +634,26 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
                 'password': ''
             },
             body: JSON.stringify(data)
-    
         };
-    
+
         const req = await new Promise((resolve, reject) => {
             request(options, function (error, response) {
                 if (error) {
-                    throw new Error(error);
+                    return reject(error);
                 }
-                resolve(JSON.parse(response.body));
+                try {
+                    resolve(JSON.parse(response.body));
+                } catch (err) {
+                    reject(new Error('Resposta inválida da Focus NFe: ' + response.body));
+                }
             });
         });
-    
-        console.log(req)
-        const retorno = {}
+
+        console.log('[emitir_nfse] Resposta Focus:', req);
+        const retorno = {};
         retorno.msg = req;
-        retorno.success = req.status === 'processando_autorizacao';
-        return { referencia, retorno }
+        retorno.success = req.status === 'processando_autorizacao' || req.status === 'autorizado';
+        return { referencia, retorno };
     },
     consultar_nfse: async (data) => {
         const api = await strapi.db.query("api::configuracao.configuracao").findOne({
@@ -622,12 +703,13 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
             await strapi.entityService.update('api::faturamento.faturamento', faturamento.id, { data: updateData });
             return { success: true, status: req.status, emitido: true, msg: 'Nota autorizada e status atualizado!' };
         } else if (statusFalha) {
+            const msgErro = req.erros ? req.erros.map(e => `${e.codigo ? e.codigo + ': ' : ''}${e.mensagem}`).join('; ') : (req.mensagem_sefaz || req.status);
             const updateData = {
                 Status: Enum_StatusFaturamento.Falha,
-                Observacoes: `${faturamento.Observacoes || ''}; Focus status: ${req.status} - ${req.erros?.[0]?.mensagem || req.mensagem_sefaz || ''}`
+                Observacoes: `${faturamento.Observacoes || ''}; Focus status: ${req.status} - ${msgErro}`
             };
             await strapi.entityService.update('api::faturamento.faturamento', faturamento.id, { data: updateData });
-            return { success: false, status: req.status, emitido: false, msg: `Erro na nota: ${req.erros?.[0]?.mensagem || req.status}` };
+            return { success: false, status: req.status, emitido: false, msg: `Erro na nota: ${msgErro}` };
         }
 
         return { success: true, status: req.status, emitido: false, msg: `Status Focus atual: ${req.status}` };
