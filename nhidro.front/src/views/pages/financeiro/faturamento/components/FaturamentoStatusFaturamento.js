@@ -124,7 +124,11 @@ const FaturamentoStatusFaturamento = (props) => {
   }, [selectedTipo]);
 
   useEffectAfterMount(() => {
-    setFilteredData(props?.faturamentos);
+    let data = props?.faturamentos || [];
+    if (status !== Enum_StatusFaturamento.Todos) {
+      data = data.filter((x) => x.status === status);
+    }
+    setFilteredData(data);
     setLoadingSkeleton(false);
   }, [props?.faturamentos]);
 
