@@ -219,6 +219,14 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
 
         let file = await strapi.services["api::configuracao.configuracao"].upload(Buffer.from(data.Imagem.Buffer.data), data.Imagem.FileName, data.Imagem.Type);  
 
+        let contatoId = null;
+        if (data.Contato) {
+            contatoId = typeof data.Contato === 'object' ? data.Contato.id : data.Contato;
+        } else {
+            const med = await strapi.entityService.findOne("api::medicao.medicao", data.Medicao.id, { populate: ['Contato'] });
+            contatoId = med?.Contato?.id || null;
+        }
+
         if(data.Medicao.Cte) {
             const faturamento = {
                 Medicao: data.Medicao.id,
@@ -230,7 +238,8 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
                 ValorLiquido: data.Medicao.SaldoDevedor,
                 Status: Enum_StatusFaturamento.EmAberto,
                 Empresa: data.Empresa,
-                Cliente: data.Cliente
+                Cliente: data.Cliente,
+                Contato: contatoId
             }
             await strapi.entityService.create("api::faturamento.faturamento", {data: faturamento});
         } else {
@@ -246,7 +255,8 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
                     ValorLiquido: data.Medicao.ValorServicoFatura,
                     Status: Enum_StatusFaturamento.EmAberto,
                     Empresa: data.Empresa,
-                    Cliente: data.Cliente
+                    Cliente: data.Cliente,
+                    Contato: contatoId
                 }
                 faturamentos.push(faturamento)
             }
@@ -261,7 +271,8 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
                     ValorLiquido: data.Medicao.ValorRLFatura,
                     Status: Enum_StatusFaturamento.EmAberto,
                     Empresa: data.Empresa,
-                    Cliente: data.Cliente
+                    Cliente: data.Cliente,
+                    Contato: contatoId
                 }
                 faturamentos.push(faturamento)
             }

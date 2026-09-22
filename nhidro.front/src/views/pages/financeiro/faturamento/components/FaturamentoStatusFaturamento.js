@@ -364,7 +364,7 @@ const FaturamentoStatusFaturamento = (props) => {
 
   const saveCopy = (data) => {
     MySwal.fire({
-      title: `Fatura: Clonar da Medição ${faturamento?.medicao} | Revisão ${faturamento?.medicao_revisao}. Para Medição ${data?.to?.medicao} | Revisão ${data?.to?.medicao_revisao}.`,
+      title: `Fatura: Clonar da Medição ${faturamento?.medicao} | Revisão ${faturamento?.medicao_revisao}${faturamento?.contato ? ` (${faturamento.contato})` : ''}. Para Medição ${data?.to?.medicao} | Revisão ${data?.to?.medicao_revisao}${data?.to?.contato ? ` (${data.to.contato})` : ''}.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Continuar",

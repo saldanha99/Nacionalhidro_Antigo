@@ -495,18 +495,24 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         return resp
     },
     clonar: async (data) => {
-        let faturamento = await strapi.entityService.findOne('api::faturamento.faturamento', data.from);
+        let faturamento = await strapi.entityService.findOne('api::faturamento.faturamento', data.from, {
+            populate: ['Contato']
+        });
         if (!faturamento) return {success: false}
+        const updateData = {
+            DadosFaturamento: faturamento.DadosFaturamento
+        };
+        if (faturamento.Contato?.id) {
+            updateData.Contato = faturamento.Contato.id;
+        }
         const entry = await strapi.entityService.update('api::faturamento.faturamento', data.to.id, {
-            data: {
-                DadosFaturamento: faturamento.DadosFaturamento
-            }
+            data: updateData
         });
         return entry;
     },
     buscar: async (params) => {
         const query = `SELECT t0.id, t0.status, t0.revisao, m0.codigo medicao, m0.revisao medicao_revisao, m0.data_cobranca, m0.data_aprovacao, t0.nota, t0.tipo_fatura, e0.descricao empresa, c0.razao_social cliente, c0.id cliente_id,
-        t0.data_vencimento, c1.nome contato, t0.data_envio, t0.valor_total, t0.valor_rateado, t0.data_emissao, t0.data_cancelamento, t0.motivo_cancelamento, t0.created_at, t0.url_arquivo_nota, c0.cnpj cliente_cnpj, 
+        t0.data_vencimento, COALESCE(c1.nome, c2.nome) contato, t0.data_envio, t0.valor_total, t0.valor_rateado, t0.data_emissao, t0.data_cancelamento, t0.motivo_cancelamento, t0.created_at, t0.url_arquivo_nota, c0.cnpj cliente_cnpj, 
         t0.valor_inss, t0.valor_iss, t0.valor_pis, t0.valor_cofins, t0.valor_ir, t0.valor_csll, t0.valor_liquido
         FROM faturamentos AS t0
         LEFT JOIN faturamentos_cliente_links AS t1 ON t0.id = t1.faturamento_id
@@ -517,6 +523,8 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         LEFT JOIN contatos AS c1 ON t2.contato_id = c1.id
         LEFT JOIN empresas AS e0 ON t3.empresa_id = e0.id
         LEFT JOIN medicoes AS m0 ON t4.medicao_id = m0.id
+        LEFT JOIN medicoes_contato_links AS t5 ON m0.id = t5.medicao_id
+        LEFT JOIN contatos AS c2 ON t5.contato_id = c2.id
         WHERE DATE_FORMAT(t0.data_criacao, '%y-%m-%d') BETWEEN DATE_FORMAT('${params.Data1}', '%y-%m-%d') AND DATE_FORMAT('${params.Data2}', '%y-%m-%d')
         AND t0.status ${params.Cancelado ? '=' : '!='} ${Enum_StatusFaturamento.Cancelado}`
         const resp = await strapi.db.connection.raw(query);
@@ -525,7 +533,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
     },
     buscar_por_cliente: async (params) => {
         const query = `SELECT t0.id, t0.status, t0.revisao, m0.codigo medicao, m0.revisao medicao_revisao, m0.data_cobranca, m0.data_aprovacao, t0.nota, t0.tipo_fatura, e0.descricao empresa, c0.razao_social cliente, c0.id cliente_id, 
-        c1.nome contato, t0.data_envio, t0.valor_total, t0.valor_rateado, t0.data_emissao, t0.data_cancelamento, t0.motivo_cancelamento, t0.created_at, t0.url_arquivo_nota
+        COALESCE(c1.nome, c2.nome) contato, t0.data_envio, t0.valor_total, t0.valor_rateado, t0.data_emissao, t0.data_cancelamento, t0.motivo_cancelamento, t0.created_at, t0.url_arquivo_nota
         FROM faturamentos AS t0
         LEFT JOIN faturamentos_cliente_links AS t1 ON t0.id = t1.faturamento_id
         LEFT JOIN faturamentos_contato_links AS t2 ON t0.id = t2.faturamento_id
@@ -535,6 +543,8 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         LEFT JOIN contatos AS c1 ON t2.contato_id = c1.id
         LEFT JOIN empresas AS e0 ON t3.empresa_id = e0.id
         LEFT JOIN medicoes AS m0 ON t4.medicao_id = m0.id
+        LEFT JOIN medicoes_contato_links AS t5 ON m0.id = t5.medicao_id
+        LEFT JOIN contatos AS c2 ON t5.contato_id = c2.id
         WHERE c0.id = ${params.cliente_id}`
         const resp = await strapi.db.connection.raw(query);
 

@@ -46,7 +46,7 @@ const ModalClonarFaturamento = (props) => {
             cssModule={{ close: "close button-close" }}>
             <h4 className="mt-1 mb-1">
               <b>
-               Clonar Fatura: Medição {faturamento?.medicao} | Revisão{" "} {faturamento?.medicao_revisao}
+               Clonar Fatura: Medição {faturamento?.medicao} | Revisão {faturamento?.medicao_revisao}{faturamento?.contato ? ` - ${faturamento.contato}` : ''}
               </b>
             </h4>
           </ModalHeader>
@@ -64,7 +64,7 @@ const ModalClonarFaturamento = (props) => {
                     noOptionsMessage={() => 'Sem registro!'}
                     options={faturamentos.filter(c => c.tipo_fatura === 'CTE' && c.id !== faturamento.id) || []}
                     isSearchable
-                    getOptionLabel={(option) => `${option?.medicao} - ${option.cliente}`}
+                    getOptionLabel={(option) => `${option?.medicao} - ${option.cliente}${option?.contato ? ` (${option.contato})` : ''}`}
                     getOptionValue={(option) => option}
                     value={faturamentos?.filter((option) => option?.id === model?.to?.id)}
                     onChange={(object) => {setModel({...model, to: object})}}
