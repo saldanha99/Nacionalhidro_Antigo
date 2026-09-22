@@ -101,7 +101,8 @@ const ModalEdicaoFaturamento = (props) => {
               valor_total: faturamento.ValorRateado, 
               tributavel: true
             }
-          ],
+          ]
+        }
         const tomadorMun = faturamento.Cliente?.CodigoMunicipio?.replace(/\D/g, '') || dados.tomador?.endereco?.codigo_municipio?.replace(/\D/g, '');
         const prestadorMun = faturamento.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
         const isFora = tomadorMun && tomadorMun !== prestadorMun;
