@@ -10,7 +10,7 @@
     "start-prod": "NODE_ENV=production strapi start",
     "start-dev": "NODE_ENV=staging strapi start",
     "start": "NODE_ENV=production pm2 start server.js --name strapi",
-    "build": "strapi build",
+    "build": "strapi build --no-optimization",
     "strapi": "strapi"
   },
   "dependencies": {
