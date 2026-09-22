@@ -271,9 +271,22 @@ const FaturamentoStatusFaturamento = (props) => {
           model.Observacoes = null
           if (data.DadosFaturamento?.servico) {
             const df = { ...data.DadosFaturamento };
-            const tomadorForaCampinas = df.tomador?.endereco?.codigo_municipio && String(df.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
-            if (df.natureza_operacao === '1' && tomadorForaCampinas) {
-              df.servico.iss_retido = false;
+            const tomadorMun = df.tomador?.endereco?.codigo_municipio && String(df.tomador.endereco.codigo_municipio).replace(/\D/g, '');
+            const prestadorMun = df.prestador?.codigo_municipio ? String(df.prestador.codigo_municipio).replace(/\D/g, '') : '3509502';
+            const localPrestacao = df.servico?.codigo_municipio && String(df.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
+              ? String(df.servico.codigo_municipio).replace(/\D/g, '')
+              : (tomadorMun || prestadorMun);
+            const isFora = localPrestacao && localPrestacao !== prestadorMun;
+
+            if (isFora) {
+              df.natureza_operacao = '2';
+              df.tributacao_rps = 'E';
+              df.servico.codigo_municipio = localPrestacao;
+              df.servico.iss_retido = 1;
+            } else {
+              df.natureza_operacao = '1';
+              df.tributacao_rps = 'T';
+              df.servico.codigo_municipio = prestadorMun;
             }
             model.DadosFaturamento = df;
           }

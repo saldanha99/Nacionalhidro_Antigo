@@ -102,15 +102,12 @@ const ModalEdicaoFaturamento = (props) => {
               tributavel: true
             }
           ],
-          natureza_operacao: '1',
-          optante_simples_nacional: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? true : false
-        }
-
-        // Sanitizar regra de Campinas: se tomador for de fora e tributado em Campinas (natureza 1), iss_retido deve ser false
         const tomadorMun = faturamento.Cliente?.CodigoMunicipio?.replace(/\D/g, '') || dados.tomador?.endereco?.codigo_municipio?.replace(/\D/g, '');
-        if (dados.natureza_operacao === '1' && tomadorMun && tomadorMun !== '3509502' && dados.servico) {
-          dados.servico.iss_retido = false;
-        }
+        const prestadorMun = faturamento.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
+        const isFora = tomadorMun && tomadorMun !== prestadorMun;
+
+        dados.natureza_operacao = isFora ? '2' : '1';
+        dados.optante_simples_nacional = faturamento.Empresa?.RegimeTributario === Enum_RegimeTributario.Simples ? true : false;
 
         const isPessoaFisica = faturamento.Cliente?.TipoPessoa === 1 || (!faturamento.Cliente?.Cnpj && faturamento.Cliente?.Cpf);
         const tomadorDoc = (isPessoaFisica ? (faturamento.Cliente?.Cpf || faturamento.Cliente?.Cnpj) : (faturamento.Cliente?.Cnpj || faturamento.Cliente?.Cpf))?.replace(/\D/g, '');
@@ -118,7 +115,7 @@ const ModalEdicaoFaturamento = (props) => {
         dados.prestador = {
           cnpj: faturamento.Empresa?.CNPJ?.replace(/\D/g, ''),
           inscricao_municipal: faturamento.Empresa?.InscricaoMunicipal?.replace(/\D/g, ''),
-          codigo_municipio: faturamento.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502'
+          codigo_municipio: prestadorMun
         }
         dados.tomador = {
           razao_social: faturamento.Cliente?.RazaoSocial,
@@ -132,7 +129,7 @@ const ModalEdicaoFaturamento = (props) => {
             bairro: faturamento.Cliente?.Bairro?.trimEnd(),
             cep: faturamento.Cliente?.Cep ? faturamento.Cliente.Cep.replace(/\D/g, '') : '',
             uf: faturamento.Cliente?.EstadoSigla?.trimEnd(),
-            codigo_municipio: faturamento.Cliente?.CodigoMunicipio?.replace(/\D/g, '')
+            codigo_municipio: tomadorMun
           }
         }
         if (isPessoaFisica) {
@@ -142,11 +139,13 @@ const ModalEdicaoFaturamento = (props) => {
           dados.tomador.cnpj = tomadorDoc;
           delete dados.tomador.cpf;
         }
-        dados.natureza_operacao = '1'
-        dados.servico.codigo_municipio = faturamento.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502'
-        dados.servico.codigo_cnae = faturamento.Empresa?.Cnae
-        dados.servico.item_lista_servico = '0710'
-        dados.tributacao_rps = 'T'
+        dados.natureza_operacao = isFora ? '2' : '1';
+        dados.tributacao_rps = isFora ? 'E' : 'T';
+        if (!dados.servico) dados.servico = {};
+        dados.servico.codigo_municipio = isFora ? tomadorMun : prestadorMun;
+        dados.servico.iss_retido = isFora ? 1 : 0;
+        dados.servico.codigo_cnae = faturamento.Empresa?.Cnae;
+        dados.servico.item_lista_servico = '0710';
         setDadosFatura(dados)
       }
       setAba(1)
@@ -265,17 +264,24 @@ const ModalEdicaoFaturamento = (props) => {
     dadosFatura.servico.valor_csll = model.ValorRateado * (dadosFatura.servico?.aliquota_csll || 0) / 100
     // dadosFatura.servico.valor_iss = model.ValorRateado * (dadosFatura.servico?.aliquota || 0) / 100
 
-    // Garantir regras tributárias de Campinas e booleano no iss_retido
-    const tomadorForaCampinas = dadosFatura.tomador?.endereco?.codigo_municipio && String(dadosFatura.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
-    if (dadosFatura.natureza_operacao === '1' && tomadorForaCampinas) {
-      dadosFatura.servico.iss_retido = false;
+    // Garantir regras tributárias de Campinas / LC 116/2003
+    const tomadorMun = dadosFatura.tomador?.endereco?.codigo_municipio && String(dadosFatura.tomador.endereco.codigo_municipio).replace(/\D/g, '');
+    const prestadorMun = model.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
+    const localPrestacao = dadosFatura.servico?.codigo_municipio && String(dadosFatura.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
+      ? String(dadosFatura.servico.codigo_municipio).replace(/\D/g, '')
+      : (tomadorMun || prestadorMun);
+    const isFora = localPrestacao && localPrestacao !== prestadorMun;
+
+    if (isFora) {
+      dadosFatura.natureza_operacao = '2';
+      dadosFatura.tributacao_rps = 'E';
+      dadosFatura.servico.codigo_municipio = localPrestacao;
+      dadosFatura.servico.iss_retido = 1;
     } else {
+      dadosFatura.natureza_operacao = '1';
+      dadosFatura.tributacao_rps = 'T';
+      dadosFatura.servico.codigo_municipio = prestadorMun;
       dadosFatura.servico.iss_retido = dadosFatura.servico?.iss_retido === true || dadosFatura.servico?.iss_retido === 'true' || dadosFatura.servico?.iss_retido === 1 || dadosFatura.servico?.iss_retido === '1';
-    }
-    dadosFatura.natureza_operacao = dadosFatura.natureza_operacao || '1';
-    dadosFatura.tributacao_rps = 'T';
-    if (dadosFatura.natureza_operacao === '1') {
-      dadosFatura.servico.codigo_municipio = model.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
     }
 
     for (var property in dadosFatura) {
@@ -1678,6 +1684,38 @@ const ModalEdicaoFaturamento = (props) => {
                               setDadosFatura({ ...dadosFatura, servico: dadosFatura.servico })
                             }}
                           />
+                        </FormGroup>
+                      </Col>
+                      <Col md={3}>
+                        <FormGroup>
+                          <Label
+                            style={{ fontSize: "12px" }}
+                            className="font-weight-bolder" >
+                            Local da Prestação (Município)
+                          </Label>
+                          <Input
+                            type="select"
+                            id="codigo_municipio_servico"
+                            name="codigo_municipio_servico"
+                            value={dadosFatura.servico?.codigo_municipio || ''}
+                            onChange={(e) => {
+                              const cod = e.target.value;
+                              const prestMun = model.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
+                              const fora = cod && cod !== prestMun;
+                              dadosFatura.servico.codigo_municipio = cod;
+                              dadosFatura.natureza_operacao = fora ? '2' : '1';
+                              dadosFatura.tributacao_rps = fora ? 'E' : 'T';
+                              dadosFatura.servico.iss_retido = fora ? 1 : 0;
+                              setDadosFatura({ ...dadosFatura, servico: dadosFatura.servico });
+                            }}
+                          >
+                            <option value="">Selecione...</option>
+                            {cidades?.map((c) => (
+                              <option key={c.Codigo} value={c.Codigo?.toString()}>
+                                {c.Nome} - {c.Uf} ({c.Codigo})
+                              </option>
+                            ))}
+                          </Input>
                         </FormGroup>
                       </Col>
                       <Col md={6}>

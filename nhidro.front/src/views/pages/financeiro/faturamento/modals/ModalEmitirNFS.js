@@ -72,15 +72,24 @@ const ModalEmitirNFS = (props) => {
     const time = `${new Date().getHours()}:${new Date().getMinutes()}:${new Date().getSeconds()}`
     model.data_emissao = moment(`${model.data_emissao_aux} ${time}`, 'YYYY-MM-DD HH:mm:ss').format()
     model.servico.discriminacao = `${model.servico.discriminacao_aux}.\nVENCIMENTO: ${moment(model.data_vencimento).format('DD/MM/YYYY')}.\nDADOS PARA DEPÓSITO: Banco: ${model.EmpresaBanco?.Banco} Ag: ${model.EmpresaBanco?.Agencia} C/C: ${model.EmpresaBanco?.Conta}`
-    model.natureza_operacao = model.natureza_operacao || '1';
-    model.tributacao_rps = 'T';
-    if (model.servico) {
-      const tomadorForaCampinas = model.tomador?.endereco?.codigo_municipio && String(model.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
-      if (model.natureza_operacao === '1' && tomadorForaCampinas) {
-        model.servico.iss_retido = false;
-      } else {
-        model.servico.iss_retido = model.servico.iss_retido === true || model.servico.iss_retido === 'true' || model.servico.iss_retido === 1 || model.servico.iss_retido === '1';
-      }
+    if (!model.servico) model.servico = {};
+    const tomadorMun = model.tomador?.endereco?.codigo_municipio ? String(model.tomador.endereco.codigo_municipio).replace(/\D/g, '') : '';
+    const prestadorMun = model.prestador?.codigo_municipio ? String(model.prestador.codigo_municipio).replace(/\D/g, '') : '3509502';
+    const localPrestacao = model.servico?.codigo_municipio && String(model.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
+      ? String(model.servico.codigo_municipio).replace(/\D/g, '')
+      : (tomadorMun || prestadorMun);
+    const isFora = localPrestacao && localPrestacao !== prestadorMun;
+
+    if (isFora) {
+      model.natureza_operacao = '2';
+      model.tributacao_rps = 'E';
+      model.servico.codigo_municipio = localPrestacao;
+      model.servico.iss_retido = 1;
+    } else {
+      model.natureza_operacao = '1';
+      model.tributacao_rps = 'T';
+      model.servico.codigo_municipio = prestadorMun;
+      model.servico.iss_retido = model.servico.iss_retido === true || model.servico.iss_retido === 'true' || model.servico.iss_retido === 1 || model.servico.iss_retido === '1';
     }
     for (var property in model) {
       if (typeof model[property] === 'string') model[property] = model[property]?.trim()

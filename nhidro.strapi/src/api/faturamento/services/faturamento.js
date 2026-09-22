@@ -65,13 +65,33 @@ const nfse = async (faturamento, cliente) => {
         }
     }
 
-    // Regras tributárias municipais (Campinas/SP): prestador sediado em Campinas (3509502)
-    body.natureza_operacao = body.natureza_operacao || '1';
-    body.tributacao_rps = 'T';
-
     if (!body.servico) body.servico = {};
-    if (body.natureza_operacao === '1') {
-        body.servico.codigo_municipio = body.prestador?.codigo_municipio || '3509502';
+
+    // Regras tributárias municipais:
+    // Determinação do local da prestação do serviço (LC 116/2003, Art. 3, VII / Item 07.10)
+    // Quando o serviço for executado fora do município do prestador (Campinas 3509502):
+    // - natureza_operacao: '2' (Tributação fora do município)
+    // - tributacao_rps: 'E' (Tributação no município da prestação / Isento em Campinas)
+    // - servico.codigo_municipio: código IBGE do local onde o serviço foi prestado (tomador/obra)
+    // - servico.iss_retido: 1 (ou true)
+    const prestadorMun = body.prestador?.codigo_municipio ? String(body.prestador.codigo_municipio).replace(/\D/g, '') : '3509502';
+    const tomadorMun = body.tomador?.endereco?.codigo_municipio ? String(body.tomador.endereco.codigo_municipio).replace(/\D/g, '') : '';
+    const localPrestacao = body.servico?.codigo_municipio && String(body.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
+        ? String(body.servico.codigo_municipio).replace(/\D/g, '')
+        : (tomadorMun || prestadorMun);
+
+    const isPrestadoFora = localPrestacao && localPrestacao !== prestadorMun;
+
+    if (isPrestadoFora) {
+        body.natureza_operacao = '2';
+        body.tributacao_rps = 'E';
+        body.servico.codigo_municipio = localPrestacao;
+        body.servico.iss_retido = 1;
+    } else {
+        body.natureza_operacao = '1';
+        body.tributacao_rps = 'T';
+        body.servico.codigo_municipio = prestadorMun;
+        body.servico.iss_retido = body.servico.iss_retido === true || body.servico.iss_retido === 'true' || body.servico.iss_retido === 1 || body.servico.iss_retido === '1';
     }
 
     if (body.itens && Array.isArray(body.itens)) {
@@ -83,19 +103,6 @@ const nfse = async (faturamento, cliente) => {
 
     if (body.servico.discriminacao) {
         body.servico.discriminacao = body.servico.discriminacao.replace(/\uFFFD/g, ' ');
-    }
-
-    // Regra tributária municipal de Campinas (Regra 50763 / ABRASF):
-    // Quando a natureza da operação for '1' (Tributada no prestador - Campinas 3509502)
-    // e o tomador estiver sediado fora de Campinas (estabelecimentoTomador: FM) sem ser substituto tributário municipal,
-    // a prefeitura de Campinas PROÍBE retenção na fonte (dadosTributacao = [Recolher pelo Prestador]).
-    // Enviar iss_retido = true causa rejeição E36. Portanto, garantimos iss_retido = false neste cenário.
-    const tomadorForaCampinas = body.tomador?.endereco?.codigo_municipio && String(body.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
-    if (body.natureza_operacao === '1' && tomadorForaCampinas) {
-        body.servico.iss_retido = false;
-    } else {
-        const isRetido = body.servico.iss_retido === true || body.servico.iss_retido === 'true' || body.servico.iss_retido === 1 || body.servico.iss_retido === '1';
-        body.servico.iss_retido = isRetido;
     }
 
     console.log('[nfse] Body preparado para Focus NFe:', JSON.stringify(body, null, 2));
@@ -288,12 +295,24 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
             updatePayload.EmpresaBanco = faturamentoInput.EmpresaBanco.id;
         }
 
-        // Sanitiza regra fiscal de Campinas no JSON de faturamento salvo
+        // Sanitiza regra fiscal de prestação do serviço no JSON de faturamento salvo
         if (updatePayload.DadosFaturamento?.servico) {
             const df = updatePayload.DadosFaturamento;
-            const tomadorForaCampinas = df.tomador?.endereco?.codigo_municipio && String(df.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
-            if (df.natureza_operacao === '1' && tomadorForaCampinas) {
-                df.servico.iss_retido = false;
+            const tomadorMun = df.tomador?.endereco?.codigo_municipio && String(df.tomador.endereco.codigo_municipio).replace(/\D/g, '');
+            const prestadorMun = df.prestador?.codigo_municipio ? String(df.prestador.codigo_municipio).replace(/\D/g, '') : '3509502';
+            const localPrestacao = df.servico?.codigo_municipio && String(df.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
+                ? String(df.servico.codigo_municipio).replace(/\D/g, '')
+                : (tomadorMun || prestadorMun);
+
+            if (localPrestacao && localPrestacao !== prestadorMun) {
+                df.natureza_operacao = '2';
+                df.tributacao_rps = 'E';
+                df.servico.codigo_municipio = localPrestacao;
+                df.servico.iss_retido = 1;
+            } else {
+                df.natureza_operacao = '1';
+                df.tributacao_rps = 'T';
+                df.servico.codigo_municipio = prestadorMun;
             }
         }
 
@@ -630,18 +649,25 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
             }
         }
 
-        data.natureza_operacao = data.natureza_operacao || '1';
-        data.tributacao_rps = 'T';
         if (!data.servico) data.servico = {};
-        if (data.natureza_operacao === '1') {
-            data.servico.codigo_municipio = data.prestador?.codigo_municipio || empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
-        }
-        const tomadorForaCampinas = data.tomador?.endereco?.codigo_municipio && String(data.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
-        if (data.natureza_operacao === '1' && tomadorForaCampinas) {
-            data.servico.iss_retido = false;
+        const prestadorMun = data.prestador?.codigo_municipio || empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
+        const tomadorMun = data.tomador?.endereco?.codigo_municipio ? String(data.tomador.endereco.codigo_municipio).replace(/\D/g, '') : '';
+        const localPrestacao = data.servico?.codigo_municipio && String(data.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
+            ? String(data.servico.codigo_municipio).replace(/\D/g, '')
+            : (tomadorMun || prestadorMun);
+
+        const isPrestadoFora = localPrestacao && localPrestacao !== prestadorMun;
+
+        if (isPrestadoFora) {
+            data.natureza_operacao = '2';
+            data.tributacao_rps = 'E';
+            data.servico.codigo_municipio = localPrestacao;
+            data.servico.iss_retido = 1;
         } else {
-            const isRetido = data.servico.iss_retido === true || data.servico.iss_retido === 'true' || data.servico.iss_retido === 1 || data.servico.iss_retido === '1';
-            data.servico.iss_retido = isRetido;
+            data.natureza_operacao = '1';
+            data.tributacao_rps = 'T';
+            data.servico.codigo_municipio = prestadorMun;
+            data.servico.iss_retido = data.servico.iss_retido === true || data.servico.iss_retido === 'true' || data.servico.iss_retido === 1 || data.servico.iss_retido === '1';
         }
 
         const referencia = 'fat_' + (empresa.Descricao || 'emp') + '_' + moment(new Date).utc().format("YYYYMMDDHHmmss");
