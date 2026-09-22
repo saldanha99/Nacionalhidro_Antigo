@@ -85,9 +85,18 @@ const nfse = async (faturamento, cliente) => {
         body.servico.discriminacao = body.servico.discriminacao.replace(/\uFFFD/g, ' ');
     }
 
-    // iss_retido deve ser booleano conforme schema Focus NFe
-    const isRetido = body.servico.iss_retido === true || body.servico.iss_retido === 'true' || body.servico.iss_retido === 1 || body.servico.iss_retido === '1';
-    body.servico.iss_retido = isRetido;
+    // Regra tributária municipal de Campinas (Regra 50763 / ABRASF):
+    // Quando a natureza da operação for '1' (Tributada no prestador - Campinas 3509502)
+    // e o tomador estiver sediado fora de Campinas (estabelecimentoTomador: FM) sem ser substituto tributário municipal,
+    // a prefeitura de Campinas PROÍBE retenção na fonte (dadosTributacao = [Recolher pelo Prestador]).
+    // Enviar iss_retido = true causa rejeição E36. Portanto, garantimos iss_retido = false neste cenário.
+    const tomadorForaCampinas = body.tomador?.endereco?.codigo_municipio && String(body.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
+    if (body.natureza_operacao === '1' && tomadorForaCampinas) {
+        body.servico.iss_retido = false;
+    } else {
+        const isRetido = body.servico.iss_retido === true || body.servico.iss_retido === 'true' || body.servico.iss_retido === 1 || body.servico.iss_retido === '1';
+        body.servico.iss_retido = isRetido;
+    }
 
     console.log('[nfse] Body preparado para Focus NFe:', JSON.stringify(body, null, 2));
     faturamento.FocusReferencia = 'fat_' + faturamento.id + '_' + moment(new Date).utc().format("YYYYMMDDHHmmss");
@@ -277,6 +286,15 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         });
         if (faturamentoInput.EmpresaBanco?.id) {
             updatePayload.EmpresaBanco = faturamentoInput.EmpresaBanco.id;
+        }
+
+        // Sanitiza regra fiscal de Campinas no JSON de faturamento salvo
+        if (updatePayload.DadosFaturamento?.servico) {
+            const df = updatePayload.DadosFaturamento;
+            const tomadorForaCampinas = df.tomador?.endereco?.codigo_municipio && String(df.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
+            if (df.natureza_operacao === '1' && tomadorForaCampinas) {
+                df.servico.iss_retido = false;
+            }
         }
 
         // 2. Salva no banco com payload limpo (evita erro 500 do Strapi com lixo no faturamentoInput)
@@ -618,8 +636,13 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         if (data.natureza_operacao === '1') {
             data.servico.codigo_municipio = data.prestador?.codigo_municipio || empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
         }
-        const isRetido = data.servico.iss_retido === true || data.servico.iss_retido === 'true' || data.servico.iss_retido === 1 || data.servico.iss_retido === '1';
-        data.servico.iss_retido = isRetido;
+        const tomadorForaCampinas = data.tomador?.endereco?.codigo_municipio && String(data.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
+        if (data.natureza_operacao === '1' && tomadorForaCampinas) {
+            data.servico.iss_retido = false;
+        } else {
+            const isRetido = data.servico.iss_retido === true || data.servico.iss_retido === 'true' || data.servico.iss_retido === 1 || data.servico.iss_retido === '1';
+            data.servico.iss_retido = isRetido;
+        }
 
         const referencia = 'fat_' + (empresa.Descricao || 'emp') + '_' + moment(new Date).utc().format("YYYYMMDDHHmmss");
 

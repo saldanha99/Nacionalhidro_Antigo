@@ -269,6 +269,14 @@ const FaturamentoStatusFaturamento = (props) => {
           model.FocusReferencia = null
           model.DadosWebHook = null
           model.Observacoes = null
+          if (data.DadosFaturamento?.servico) {
+            const df = { ...data.DadosFaturamento };
+            const tomadorForaCampinas = df.tomador?.endereco?.codigo_municipio && String(df.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
+            if (df.natureza_operacao === '1' && tomadorForaCampinas) {
+              df.servico.iss_retido = false;
+            }
+            model.DadosFaturamento = df;
+          }
           props.alterarFaturamento(data.id, model);
       }
     });

@@ -46,7 +46,7 @@ const ModalEmitirNFS = (props) => {
         prestador: {},
         tomador: { endereco: {} },
         servico: {
-          iss_retido: true,
+          iss_retido: false,
           aliquota: 5,
           aliquota_inss: 11,
           codigo_cnae: '812900000',
@@ -75,7 +75,12 @@ const ModalEmitirNFS = (props) => {
     model.natureza_operacao = model.natureza_operacao || '1';
     model.tributacao_rps = 'T';
     if (model.servico) {
-      model.servico.iss_retido = model.servico.iss_retido === true || model.servico.iss_retido === 'true' || model.servico.iss_retido === 1 || model.servico.iss_retido === '1';
+      const tomadorForaCampinas = model.tomador?.endereco?.codigo_municipio && String(model.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
+      if (model.natureza_operacao === '1' && tomadorForaCampinas) {
+        model.servico.iss_retido = false;
+      } else {
+        model.servico.iss_retido = model.servico.iss_retido === true || model.servico.iss_retido === 'true' || model.servico.iss_retido === 1 || model.servico.iss_retido === '1';
+      }
     }
     for (var property in model) {
       if (typeof model[property] === 'string') model[property] = model[property]?.trim()
@@ -459,15 +464,14 @@ const ModalEmitirNFS = (props) => {
                             type="select"
                             id="iss_retido"
                             name="iss_retido"
-                            value={model.servico.iss_retido}
+                            value={String(model.servico?.iss_retido === true)}
                             onChange={(e) => {
                               model.servico.iss_retido = e.target.value === 'true'
                               setModel({ ...model, servico: model.servico })
                             }}
                           >
-                            <option value={''}></option>
-                            <option value={true}>Sim</option>
-                            <option value={false}>Não</option>
+                            <option value="false">Não (Recolher pelo Prestador)</option>
+                            <option value="true">Sim (Retido na Fonte)</option>
                           </Input>
                         </FormGroup>
                       </Col>

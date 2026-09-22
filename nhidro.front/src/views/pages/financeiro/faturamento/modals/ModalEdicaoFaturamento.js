@@ -106,6 +106,12 @@ const ModalEdicaoFaturamento = (props) => {
           optante_simples_nacional: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? true : false
         }
 
+        // Sanitizar regra de Campinas: se tomador for de fora e tributado em Campinas (natureza 1), iss_retido deve ser false
+        const tomadorMun = faturamento.Cliente?.CodigoMunicipio?.replace(/\D/g, '') || dados.tomador?.endereco?.codigo_municipio?.replace(/\D/g, '');
+        if (dados.natureza_operacao === '1' && tomadorMun && tomadorMun !== '3509502' && dados.servico) {
+          dados.servico.iss_retido = false;
+        }
+
         const isPessoaFisica = faturamento.Cliente?.TipoPessoa === 1 || (!faturamento.Cliente?.Cnpj && faturamento.Cliente?.Cpf);
         const tomadorDoc = (isPessoaFisica ? (faturamento.Cliente?.Cpf || faturamento.Cliente?.Cnpj) : (faturamento.Cliente?.Cnpj || faturamento.Cliente?.Cpf))?.replace(/\D/g, '');
 
@@ -260,7 +266,12 @@ const ModalEdicaoFaturamento = (props) => {
     // dadosFatura.servico.valor_iss = model.ValorRateado * (dadosFatura.servico?.aliquota || 0) / 100
 
     // Garantir regras tributárias de Campinas e booleano no iss_retido
-    dadosFatura.servico.iss_retido = dadosFatura.servico?.iss_retido === true || dadosFatura.servico?.iss_retido === 'true' || dadosFatura.servico?.iss_retido === 1 || dadosFatura.servico?.iss_retido === '1';
+    const tomadorForaCampinas = dadosFatura.tomador?.endereco?.codigo_municipio && String(dadosFatura.tomador.endereco.codigo_municipio).replace(/\D/g, '') !== '3509502';
+    if (dadosFatura.natureza_operacao === '1' && tomadorForaCampinas) {
+      dadosFatura.servico.iss_retido = false;
+    } else {
+      dadosFatura.servico.iss_retido = dadosFatura.servico?.iss_retido === true || dadosFatura.servico?.iss_retido === 'true' || dadosFatura.servico?.iss_retido === 1 || dadosFatura.servico?.iss_retido === '1';
+    }
     dadosFatura.natureza_operacao = dadosFatura.natureza_operacao || '1';
     dadosFatura.tributacao_rps = 'T';
     if (dadosFatura.natureza_operacao === '1') {
@@ -1563,15 +1574,14 @@ const ModalEdicaoFaturamento = (props) => {
                             type="select"
                             id="iss_retido"
                             name="iss_retido"
-                            value={dadosFatura.servico.iss_retido}
+                            value={String(dadosFatura.servico?.iss_retido === true)}
                             onChange={(e) => {
                               dadosFatura.servico.iss_retido = e.target.value === 'true'
                               setDadosFatura({ ...dadosFatura, servico: dadosFatura.servico })
                             }}
                           >
-                            <option value={''}></option>
-                            <option value={true}>Sim</option>
-                            <option value={false}>Não</option>
+                            <option value="false">Não (Recolher pelo Prestador)</option>
+                            <option value="true">Sim (Retido na Fonte)</option>
                           </Input>
                         </FormGroup>
                       </Col>
