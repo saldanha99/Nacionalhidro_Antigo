@@ -39,7 +39,7 @@ export const buscarVendedores = (includeAdm) => {
   return (dispatch) => {
     api.get(`api/users?${query}`, function (data) {
       if (data) {
-        const vendedores = _.orderBy(data.filter(x => x.role.name.includes('Comercial') || (includeAdm && x.role.name === 'Gerencial')), ['username'], ['asc'])
+        const vendedores = _.orderBy(data.filter(x => !x.blocked && x.username !== 'SALDANHA TESTE' && (x.role?.name?.includes('Comercial') || x.username?.toUpperCase()?.includes('ANDREA') || (includeAdm && x.role?.name === 'Gerencial'))), ['username'], ['asc'])
         dispatch({
           type: "BUSCAR_VENDEDORES",
           payload: normalize(vendedores)

@@ -264,7 +264,7 @@ useEffectAfterMount(() => {
                     <Button color="primary"
                         disabled={user.role.name === 'Seguranca Trabalho'}
                         onClick={() => {
-                            setData({ id: 0, Vendedor: user.role.name.includes('Comercial') ? user : null})
+                            setData({ id: 0, Vendedor: (user.role.name.includes('Comercial') || user.username?.toUpperCase()?.includes('ANDREA')) ? user : null})
                             setModal(true)
                         }}
                         className="text-size-button"
