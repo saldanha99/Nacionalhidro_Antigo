@@ -39,7 +39,7 @@ export const buscarVendedores = (includeAdm) => {
   return (dispatch) => {
     api.get(`api/users?${query}`, function (data) {
       if (data) {
-        const vendedores = _.orderBy(data.filter(x => !x.blocked && x.username !== 'SALDANHA TESTE' && (x.role?.name?.includes('Comercial') || x.username?.toUpperCase()?.includes('ANDREA') || (includeAdm && x.role?.name === 'Gerencial'))), ['username'], ['asc'])
+        const vendedores = _.orderBy(data.filter(x => !x.blocked && x.username !== 'SALDANHA TESTE' && (x.role?.name?.includes('Comercial') || x.username?.toUpperCase()?.includes('ANDREA') || x.aprovadorMedicao || (includeAdm && x.role?.name === 'Gerencial'))), ['username'], ['asc'])
         dispatch({
           type: "BUSCAR_VENDEDORES",
           payload: normalize(vendedores)
@@ -55,17 +55,23 @@ export const buscarVendedores = (includeAdm) => {
 }
 
 export const buscarAprovadoresMedicao = () => {
+  const query = qs.stringify({
+    sort: ['username:asc'],
+    populate: 'role'
+  }, {
+    encodeValuesOnly: true // prettify URL
+  })
   return (dispatch) => {
-    api.get(`api/users`, function (data) {
+    api.get(`api/users?${query}`, function (data) {
       if (data) {
-        const aprovadores = _.orderBy(data.filter(x => x.aprovadorMedicao), ['username'], ['asc'])
+        const aprovadores = _.orderBy(data.filter(x => !x.blocked && x.username !== 'SALDANHA TESTE' && (x.aprovadorMedicao || x.role?.name?.includes('Comercial') || x.username?.toUpperCase()?.includes('ANDREA') || x.role?.name === 'Gerencial')), ['username'], ['asc'])
         dispatch({
           type: "BUSCAR_APROVADORES",
           payload: normalize(aprovadores)
         })
       } else {
         dispatch({
-          type: "BUSCAR_VENDEDORES_ERROR",
+          type: "BUSCAR_APROVADORES_ERROR",
           payload: data
         })
       }

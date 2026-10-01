@@ -28,6 +28,7 @@ import ReactTable from "react-table-v6";
 import "react-table-v6/react-table.css";
 import { FiAlertTriangle, FiDollarSign, FiEdit } from "react-icons/fi";
 import { buscarClientesAtivos } from "@src/redux/actions/administrador/cliente/listaClientesActions";
+import { buscarVendedores } from "@src/redux/actions/administrador/usuario/buscarUsuariosActions";
 import { cadastrarMedicao, buscarPrecificacao, buscarOrdemPrecificacao, corrigirPrecificacao } from "@src/redux/actions/financeiro/medicao/index";
 import { DiffDatesInDays } from "../../../../../utility/date/date";
 import { matchSorter } from "match-sorter";
@@ -193,6 +194,7 @@ const MedicaoPrecificar = (props) => {
     if (selectedTipo === "Status_da_Precificação") {
       buscarOrdens(intervaloData);
       props.buscarClientesAtivos();
+      props.buscarVendedores(true);
       setLoadingSkeleton(true);
     }
   }, [selectedTipo]);
@@ -637,6 +639,7 @@ const MedicaoPrecificar = (props) => {
         clientes={props.clientes}
         empresas={empresas}
         criarMedicao={criarMedicao}
+        vendedores={props.vendedores}
       />
       <ModalPrecificacao
         open={openPrecificar}
@@ -656,7 +659,8 @@ const mapStateToProps = (state) => {
     stateVerificacao: state?.medicao?.stateVerificacao,
     stateSalvar: state?.medicao?.stateSalvar,
     error: state?.medicao?.error,
-    clientes: state?.cliente?.listaClientesAtivos
+    clientes: state?.cliente?.listaClientesAtivos,
+    vendedores: state?.usuario?.vendedores
   };
 };
 
@@ -664,6 +668,7 @@ export default connect(mapStateToProps, {
   buscarPrecificacao,
   buscarOrdemPrecificacao,
   buscarClientesAtivos,
+  buscarVendedores,
   precificar,
   verificarPendencias,
   cadastrarMedicao,

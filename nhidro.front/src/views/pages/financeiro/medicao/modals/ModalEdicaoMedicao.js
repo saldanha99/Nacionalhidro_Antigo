@@ -61,7 +61,11 @@ const ModalEdicaoMedicao = (props) => {
   useEffect(() => {
     if (modalEdicao) {
       setAdicionarOS(false)
-      setModel(medicao);
+      const medicaoData = { ...medicao };
+      if (!medicaoData.Vendedor?.id && medicaoData.Cliente?.Vendedor?.id) {
+        medicaoData.Vendedor = medicaoData.Cliente.Vendedor;
+      }
+      setModel(medicaoData);
     }
   }, [modalEdicao]);
 
@@ -385,14 +389,14 @@ const ModalEdicaoMedicao = (props) => {
                       }),
                     }}
                     name="Vendedor"
-                    options={vendedores}
+                    options={vendedores || []}
                     getOptionLabel={(option) => option?.username}
                     getOptionValue={(option) => option}
                     isDisabled={
                       model.Status !== Enum_StatusMedicao.EmAberto
                     }
                     isSearchable
-                    value={vendedores.filter(
+                    value={vendedores?.filter(
                       (option) => option.id === model.Vendedor?.id
                     )}
                     onChange={(e) => {

@@ -101,12 +101,14 @@ export const buscarMedicoes = (data1, data2) => {
       },
       populate: [
         "Empresa",
+        "Cliente.Vendedor",
         "Cliente",
         "Contato",
         "Ordens.Equipamento",
         "Ordens.Contato",
         "Ordens.Cliente",
-        "Ordens.Servicos"
+        "Ordens.Servicos",
+        "Vendedor"
       ],
     },
     {
@@ -172,12 +174,14 @@ export const buscarMedicao = (id) => {
     {
       populate: [
         "Empresa",
+        "Cliente.Vendedor",
         "Cliente",
         "Contato",
         "Ordens.Equipamento",
         "Ordens.Contato",
         "Ordens.Cliente",
-        "Ordens.Servicos"
+        "Ordens.Servicos",
+        "Vendedor"
       ]
     },
     {

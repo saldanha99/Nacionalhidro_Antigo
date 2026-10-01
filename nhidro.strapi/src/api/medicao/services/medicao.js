@@ -20,6 +20,20 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
         });
         data.Codigo = maxCode[0]?.Codigo ? maxCode[0]?.Codigo + 1 : 1000;
 
+        if (data.Vendedor?.id) {
+          data.Vendedor = data.Vendedor.id;
+        } else if (!data.Vendedor && (data.Cliente?.id || data.Cliente)) {
+          const clienteId = data.Cliente?.id || data.Cliente;
+          try {
+            const cliente = await strapi.entityService.findOne('api::cliente.cliente', clienteId, { populate: ['Vendedor'] });
+            if (cliente?.Vendedor?.id) {
+              data.Vendedor = cliente.Vendedor.id;
+            }
+          } catch (e) {
+            strapi.log.error('Erro ao buscar Vendedor do Cliente para Medição:', e);
+          }
+        }
+
         const entry = await strapi.entityService.create("api::medicao.medicao", {data: data});
         
         for(let ordem of data.Ordens) {
@@ -34,6 +48,20 @@ module.exports = createCoreService('api::medicao.medicao', ({ strapi }) => ({
         return entry;
     },
     alterar: async (data) => {
+        if (data.Vendedor?.id) {
+          data.Vendedor = data.Vendedor.id;
+        } else if (!data.Vendedor && (data.Cliente?.id || data.Cliente)) {
+          const clienteId = data.Cliente?.id || data.Cliente;
+          try {
+            const cliente = await strapi.entityService.findOne('api::cliente.cliente', clienteId, { populate: ['Vendedor'] });
+            if (cliente?.Vendedor?.id) {
+              data.Vendedor = cliente.Vendedor.id;
+            }
+          } catch (e) {
+            strapi.log.error('Erro ao buscar Vendedor do Cliente para Medição:', e);
+          }
+        }
+
         const entry = await strapi.entityService.update("api::medicao.medicao", data.id, {data: data});
         
         if (data.OrdensRemovidas) {

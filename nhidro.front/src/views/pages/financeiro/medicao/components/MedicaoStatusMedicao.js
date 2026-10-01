@@ -37,7 +37,7 @@ import {
   FiThumbsUp,
 } from "react-icons/fi";
 import { buscarClientesAtivos } from "@src/redux/actions/administrador/cliente/listaClientesActions";
-import { buscarAprovadoresMedicao } from "@src/redux/actions/administrador/usuario/buscarUsuariosActions"
+import { buscarVendedores, buscarAprovadoresMedicao } from "@src/redux/actions/administrador/usuario/buscarUsuariosActions";
 import { precificar } from "@src/redux/actions/financeiro/medicao/precificarActions";
 import ModalEdicaoMedicao from "../modals/ModalEdicaoMedicao";
 import ModalAprovarCobrancaMedicao from "../modals/ModalAprovarCobrancaMedicao";
@@ -359,6 +359,7 @@ const MedicaoStatusMedicao = (props) => {
     if (selectedTipo === "Status_da_Medição") {
       buscarMedicoes(intervaloData);
       props.buscarClientesAtivos();
+      props.buscarVendedores(true);
       props.buscarAprovadoresMedicao();
       setLoadingSkeleton(true);
     }
@@ -811,7 +812,7 @@ const MedicaoStatusMedicao = (props) => {
           modalEdicao={modalEdicao}
           medicao={medicao}
           ordens={props.ordens}
-          vendedores={props.aprovadores}
+          vendedores={props.vendedores && props.vendedores.length > 0 ? props.vendedores : props.aprovadores}
           handleClose={handleClose}
           handlePrecificar={handlePrecificar}
           alterarMedicao={alterarMedicao}
@@ -838,6 +839,7 @@ const mapStateToProps = (state) => {
     send: state?.medicao?.send,
     clientes: state?.cliente?.listaClientesAtivos,
     aprovadores: state?.usuario?.aprovadores,
+    vendedores: state?.usuario?.vendedores,
     stateCancelar: state?.medicao?.stateCancelar,
     stateSalvar: state?.medicao?.stateSalvar,
     statePrecificar: state?.medicao?.statePrecificar,
@@ -849,6 +851,7 @@ export default connect(mapStateToProps, {
   buscarMedicoesRaw,
   buscarMedicao,
   buscarClientesAtivos,
+  buscarVendedores,
   buscarAprovadoresMedicao,
   alterarMedicao,
   alterarStatusMedicao,

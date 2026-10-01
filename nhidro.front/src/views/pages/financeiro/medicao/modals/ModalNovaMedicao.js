@@ -29,7 +29,7 @@ import { FiPlus, FiMinus } from "react-icons/fi";
 import moment from "moment";
 
 const ModalNovaMedicao = (props) => {
-  const { modal, handleClose, clientes, empresas, handlePrecificar, criarMedicao } = props;
+  const { modal, handleClose, clientes, empresas, handlePrecificar, criarMedicao, vendedores } = props;
 
   const [propostas, setPropostas] = useState([]);
   const [ordens, setOrdens] = useState([]);
@@ -43,6 +43,7 @@ const ModalNovaMedicao = (props) => {
     Empresa: {},
     Cliente: {},
     Contato: {},
+    Vendedor: null,
     Revisao: 0,
     EmailCopia: '',
     Cte: false,
@@ -81,6 +82,7 @@ const ModalNovaMedicao = (props) => {
         Ordens: [],
         Cliente: {},
         Contato: {},
+        Vendedor: null,
         Empresa: {},
         Revisao: 0,
         EmailCopia: '',
@@ -128,6 +130,7 @@ const ModalNovaMedicao = (props) => {
     setModel({
       Ordens: [],
       Cliente: search.Cliente,
+      Vendedor: search.Cliente?.Vendedor || null,
       Empresa: {},
       Contato: {},
       Revisao: 0,
@@ -668,6 +671,35 @@ const ModalNovaMedicao = (props) => {
                     </Col>
                   </Row>
                   <Row>
+                    <Col md="6">
+                      <FormGroup>
+                        <Label className="font-weight-bolder">Vendedor Responsável</Label>
+                        <Select
+                          placeholder="Selecione..."
+                          className="React"
+                          classNamePrefix="select"
+                          styles={{
+                            menu: (provided) => ({ ...provided, zIndex: 9999 }),
+                            control: (provided) => ({
+                              ...provided,
+                              minHeight: 0,
+                              height: "3rem",
+                            }),
+                          }}
+                          name="Vendedor"
+                          options={vendedores || []}
+                          isSearchable
+                          getOptionLabel={(option) => option?.username}
+                          getOptionValue={(option) => option}
+                          value={vendedores?.filter(
+                            (option) => option.id === model.Vendedor?.id
+                          )}
+                          onChange={(object) => {
+                            setModel({ ...model, Vendedor: object });
+                          }}
+                        />
+                      </FormGroup>
+                    </Col>
                     <Col md="6">
                       <FormGroup>
                         <Label className="font-weight-bolder">CTe</Label>

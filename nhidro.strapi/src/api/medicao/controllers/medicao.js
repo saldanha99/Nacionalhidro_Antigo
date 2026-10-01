@@ -8,7 +8,7 @@ const { createCoreController } = require('@strapi/strapi').factories;
 
 module.exports = createCoreController('api::medicao.medicao', ({ strapi }) => ({
     cadastrar: async (ctx, next) => {
-        const data = ctx.request.body?.data;
+        const data = ctx.request.body?.data || ctx.request.body;
   
         await strapi.services["api::medicao.medicao"].cadastrar(data);
   
@@ -18,7 +18,7 @@ module.exports = createCoreController('api::medicao.medicao', ({ strapi }) => ({
         };
     },
     alterar: async (ctx, next) => {
-        const data = ctx.request.body?.data;
+        const data = ctx.request.body?.data || ctx.request.body;
   
         try {
             await strapi.services["api::medicao.medicao"].alterar(data);
