@@ -32,14 +32,18 @@ export const buscarUsuarios = () => {
 export const buscarVendedores = (includeAdm) => {
   const query = qs.stringify({
     sort: ['username:asc'],
-    populate: 'role'
+    populate: 'role',
+    pagination: {
+      pageSize: 500
+    },
+    _limit: 500
   }, {
     encodeValuesOnly: true // prettify URL
   })
   return (dispatch) => {
     api.get(`api/users?${query}`, function (data) {
       if (data) {
-        const vendedores = _.orderBy(data.filter(x => !x.blocked && x.username !== 'SALDANHA TESTE' && (x.role?.name?.includes('Comercial') || x.username?.toUpperCase()?.includes('ANDREA') || x.aprovadorMedicao || (includeAdm && x.role?.name === 'Gerencial'))), ['username'], ['asc'])
+        const vendedores = _.orderBy(data.filter(x => !x.blocked && x.username !== 'SALDANHA TESTE' && (x.role?.name?.includes('Comercial') || x.role?.name?.includes('Vendedor') || x.username?.toUpperCase()?.includes('ANDREA') || x.username?.toUpperCase()?.includes('SERGIO') || x.username?.toUpperCase()?.includes('SÉRGIO') || x.aprovadorMedicao || (includeAdm && x.role?.name === 'Gerencial'))), ['username'], ['asc'])
         dispatch({
           type: "BUSCAR_VENDEDORES",
           payload: normalize(vendedores)
@@ -57,14 +61,18 @@ export const buscarVendedores = (includeAdm) => {
 export const buscarAprovadoresMedicao = () => {
   const query = qs.stringify({
     sort: ['username:asc'],
-    populate: 'role'
+    populate: 'role',
+    pagination: {
+      pageSize: 500
+    },
+    _limit: 500
   }, {
     encodeValuesOnly: true // prettify URL
   })
   return (dispatch) => {
     api.get(`api/users?${query}`, function (data) {
       if (data) {
-        const aprovadores = _.orderBy(data.filter(x => !x.blocked && x.username !== 'SALDANHA TESTE' && (x.aprovadorMedicao || x.role?.name?.includes('Comercial') || x.username?.toUpperCase()?.includes('ANDREA') || x.role?.name === 'Gerencial')), ['username'], ['asc'])
+        const aprovadores = _.orderBy(data.filter(x => !x.blocked && x.username !== 'SALDANHA TESTE' && (x.aprovadorMedicao || x.role?.name?.includes('Comercial') || x.role?.name?.includes('Vendedor') || x.username?.toUpperCase()?.includes('ANDREA') || x.username?.toUpperCase()?.includes('SERGIO') || x.username?.toUpperCase()?.includes('SÉRGIO') || x.role?.name === 'Gerencial')), ['username'], ['asc'])
         dispatch({
           type: "BUSCAR_APROVADORES",
           payload: normalize(aprovadores)

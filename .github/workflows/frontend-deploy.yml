@@ -25,8 +25,10 @@ jobs:
             docker stack ls || true
             echo "=== Stopping any compose containers ==="
             docker compose -f docker-compose-legacy.yml down || true
-            echo "=== Building images ==="
-            docker compose -f docker-compose-legacy.yml build
+            echo "=== Building frontend ==="
+            docker compose -f docker-compose-legacy.yml build front-legacy
+            echo "=== Building strapi ==="
+            docker compose -f docker-compose-legacy.yml build strapi-legacy
             echo "=== Deploying Swarm Stack ==="
             docker stack deploy -c docker-compose-legacy.yml nacionalhidro-legacy
             echo "=== Deployment Finished ==="
