@@ -34,6 +34,8 @@ import NfseNacionalCampos, {
   isVerdadeiro,
 } from "./NfseNacionalCampos";
 
+const centavos = (valor) => Math.round((Number(valor || 0) + Number.EPSILON) * 100) / 100;
+
 const ModalEdicaoFaturamento = (props) => {
   const {
     modal,
@@ -285,11 +287,13 @@ const ModalEdicaoFaturamento = (props) => {
     const time = `${new Date().getHours()}:${new Date().getMinutes()}:${new Date().getSeconds()}`
     dadosFatura.data_emissao = moment(`${model.DataEmissao} ${time}`, 'YYYY-MM-DD HH:mm:ss').format()
     dadosFatura.servico.discriminacao = `${dadosFatura.servico.discriminacao_aux}.\nVENCIMENTO: ${moment(model.DataVencimento).format('DD/MM/YYYY')}.\nDADOS PARA DEPÓSITO: Banco: ${model.EmpresaBanco?.Banco} Ag: ${model.EmpresaBanco?.Agencia} C/C: ${model.EmpresaBanco?.Conta}`
-    dadosFatura.servico.valor_inss = model.ValorRateado * (dadosFatura.servico?.aliquota_inss || 0) / 100
-    dadosFatura.servico.valor_pis = model.ValorRateado * (dadosFatura.servico?.aliquota_pis || 0) / 100
-    dadosFatura.servico.valor_cofins = model.ValorRateado * (dadosFatura.servico?.aliquota_cofins || 0) / 100
-    dadosFatura.servico.valor_ir = model.ValorRateado * (dadosFatura.servico?.aliquota_ir || 0) / 100
-    dadosFatura.servico.valor_csll = model.ValorRateado * (dadosFatura.servico?.aliquota_csll || 0) / 100
+    // Cada retenção em centavos, como aparece na NFS-e; o líquido é a soma desses valores.
+    const valorRetencao = (aliquota) => centavos(model.ValorRateado * (aliquota || 0) / 100)
+    dadosFatura.servico.valor_inss = valorRetencao(dadosFatura.servico?.aliquota_inss)
+    dadosFatura.servico.valor_pis = valorRetencao(dadosFatura.servico?.aliquota_pis)
+    dadosFatura.servico.valor_cofins = valorRetencao(dadosFatura.servico?.aliquota_cofins)
+    dadosFatura.servico.valor_ir = valorRetencao(dadosFatura.servico?.aliquota_ir)
+    dadosFatura.servico.valor_csll = valorRetencao(dadosFatura.servico?.aliquota_csll)
     // dadosFatura.servico.valor_iss = model.ValorRateado * (dadosFatura.servico?.aliquota || 0) / 100
 
     // Local da prestação (LC 116/2003, art. 3º, VII): o município escolhido na tela,
@@ -309,14 +313,16 @@ const ModalEdicaoFaturamento = (props) => {
     }
 
     model.DadosFaturamento = dadosFatura
-    model.ValorIss = model.ValorRateado * (dadosFatura.servico?.aliquota || 0) / 100
+    model.ValorIss = valorRetencao(dadosFatura.servico?.aliquota)
     // model.ValorIss = dadosFatura.servico.valor_iss
     model.ValorInss = dadosFatura.servico.valor_inss
     model.ValorIr = dadosFatura.servico.valor_ir
     model.ValorPis = dadosFatura.servico.valor_pis
     model.ValorCofins = dadosFatura.servico.valor_cofins
     model.ValorCsll = dadosFatura.servico.valor_csll
-    model.ValorLiquido = model.ValorRateado - (model.ValorIss || 0) - (model.ValorInss || 0) - (model.ValorIr || 0) - (model.ValorPis || 0) - (model.ValorCofins || 0) - (model.ValorCsll || 0)
+    // Mesmo líquido da NFS-e: o ISS só sai do valor quando é retido pelo tomador.
+    const issDescontado = dadosFatura.servico.iss_retido ? (model.ValorIss || 0) : 0
+    model.ValorLiquido = centavos(model.ValorRateado - issDescontado - (model.ValorInss || 0) - (model.ValorIr || 0) - (model.ValorPis || 0) - (model.ValorCofins || 0) - (model.ValorCsll || 0))
     salvar ? save(model) : gerar(model)
   }
 
