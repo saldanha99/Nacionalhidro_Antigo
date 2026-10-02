@@ -21,6 +21,11 @@ const CAMPINAS = '3509502';
 // (fat_...) continuam sendo consultadas e canceladas por /v2/nfse.
 const PREFIXO_REFERENCIA_NACIONAL = 'nfsen_';
 
+// Série da DPS enviada por integração. Desde 01/10/2026 Campinas recusa as séries
+// 00001 a 10000 (uso exclusivo do sistema municipal) com o erro L0022; a faixa de
+// integração é 10001 a 49999. O número da DPS continua sendo dado pela Focus.
+const SERIE_DPS_INTEGRACAO = '10001';
+
 // Até esta data o emissor antigo de Campinas ainda aceita optantes do Simples
 // Nacional; a partir dela todo mundo emite no padrão nacional.
 const INICIO_NACIONAL_SIMPLES = '2026-11-01';
@@ -152,6 +157,7 @@ const montarDpsNacional = (dados) => {
     }
 
     const payload = {
+        serie_dps: SERIE_DPS_INTEGRACAO,
         data_emissao: texto(dados.data_emissao) || new Date().toISOString(),
         data_competencia: dataCompetencia(dados.data_emissao),
         codigo_municipio_emissora: prestadorMun,
@@ -265,6 +271,7 @@ module.exports = {
     PADROES_SERVICO,
     PREFIXO_REFERENCIA_NACIONAL,
     INICIO_NACIONAL_SIMPLES,
+    SERIE_DPS_INTEGRACAO,
     isReferenciaNacional,
     resolverLocalPrestacao,
     usarPadraoNacional,
