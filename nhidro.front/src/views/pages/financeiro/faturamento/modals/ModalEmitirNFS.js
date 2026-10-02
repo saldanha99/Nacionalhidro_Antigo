@@ -19,6 +19,12 @@ import "flatpickr/dist/themes/light.css";
 import "@styles/base/plugins/forms/pickers/form-flat-pickr.scss";
 import { FiMinusCircle } from "react-icons/fi";
 import { cidades } from "../../../../../utility/cidades_ibge";
+import NfseNacionalCampos, {
+  aplicarPadroesNacionais,
+  imovelAoTrocarLocal,
+  imovelIncompleto,
+  isVerdadeiro,
+} from "./NfseNacionalCampos";
 import moment from "moment";
 
 const ModalEmitirNFS = (props) => {
@@ -45,13 +51,19 @@ const ModalEmitirNFS = (props) => {
       setModel({
         prestador: {},
         tomador: { endereco: {} },
-        servico: {
+        servico: aplicarPadroesNacionais({
           iss_retido: false,
           aliquota: 5,
-          aliquota_inss: 11,
+          // Retenções orientadas pelo contador: IRRF 1,5%, PIS+COFINS+CSLL 4,65%, INSS 3,5%
+          aliquota_ir: 1.5,
+          aliquota_pis: 0.65,
+          aliquota_cofins: 3,
+          aliquota_csll: 1,
+          aliquota_inss: 3.5,
           codigo_cnae: '812900000',
           item_lista_servico: '0710'
-        },
+        }),
+        imovel: {},
         itens: [{
           discriminacao: 'SERVIÇOS PRESTADOS', 
           quantidade: 1, 
@@ -59,38 +71,30 @@ const ModalEmitirNFS = (props) => {
           valor_total: 1, 
           tributavel: true
         }],
-        optante_simples_nacional: true,
+        optante_simples_nacional: false,
       })
     }
   }, [modal])
 
   const isButtonDisabled = (!model?.EmpresaBanco || !model.data_emissao_aux || !model.data_vencimento || !model.empresa_id || !model.tomador?.cnpj || !model.tomador?.razao_social || !model.tomador?.endereco?.logradouro
     || !model.tomador?.endereco?.numero || !model.tomador?.endereco?.bairro || !model.tomador?.endereco?.cep || !model.tomador?.endereco?.uf || !model.tomador?.endereco?.codigo_municipio || model.servico?.iss_retido === undefined || model.servico?.iss_retido === null || model.servico?.iss_retido === '' || !model.servico?.item_lista_servico || !model.servico?.codigo_cnae
-    || !model.servico?.aliquota || !model.itens?.length || !model.tributacao_rps);
+    || !model.servico?.aliquota || !model.itens?.length || imovelIncompleto(model.imovel));
 
   const salvar = () => {
     const time = `${new Date().getHours()}:${new Date().getMinutes()}:${new Date().getSeconds()}`
     model.data_emissao = moment(`${model.data_emissao_aux} ${time}`, 'YYYY-MM-DD HH:mm:ss').format()
     model.servico.discriminacao = `${model.servico.discriminacao_aux}.\nVENCIMENTO: ${moment(model.data_vencimento).format('DD/MM/YYYY')}.\nDADOS PARA DEPÓSITO: Banco: ${model.EmpresaBanco?.Banco} Ag: ${model.EmpresaBanco?.Agencia} C/C: ${model.EmpresaBanco?.Conta}`
     if (!model.servico) model.servico = {};
+    // Local da prestação: o escolhido na tela ou, sem escolha, o município do tomador
     const tomadorMun = model.tomador?.endereco?.codigo_municipio ? String(model.tomador.endereco.codigo_municipio).replace(/\D/g, '') : '';
     const prestadorMun = model.prestador?.codigo_municipio ? String(model.prestador.codigo_municipio).replace(/\D/g, '') : '3509502';
-    const localPrestacao = model.servico?.codigo_municipio && String(model.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
-      ? String(model.servico.codigo_municipio).replace(/\D/g, '')
-      : (tomadorMun || prestadorMun);
-    const isFora = localPrestacao && localPrestacao !== prestadorMun;
+    const localPrestacao = String(model.servico?.codigo_municipio || tomadorMun || prestadorMun).replace(/\D/g, '');
+    const isFora = localPrestacao !== prestadorMun;
 
-    if (isFora) {
-      model.natureza_operacao = '2';
-      model.tributacao_rps = 'E';
-      model.servico.codigo_municipio = localPrestacao;
-      model.servico.iss_retido = 1;
-    } else {
-      model.natureza_operacao = '1';
-      model.tributacao_rps = 'T';
-      model.servico.codigo_municipio = prestadorMun;
-      model.servico.iss_retido = model.servico.iss_retido === true || model.servico.iss_retido === 'true' || model.servico.iss_retido === 1 || model.servico.iss_retido === '1';
-    }
+    model.natureza_operacao = isFora ? '2' : '1';
+    model.tributacao_rps = isFora ? 'E' : 'T';
+    model.servico.codigo_municipio = localPrestacao;
+    model.servico.iss_retido = isVerdadeiro(model.servico.iss_retido);
     for (var property in model) {
       if (typeof model[property] === 'string') model[property] = model[property]?.trim()
     }
@@ -147,6 +151,7 @@ const ModalEmitirNFS = (props) => {
                               model.prestador.cnpj = empresa.CNPJ
                               model.prestador.inscricao_municipal = empresa.InscricaoMunicipal
                               model.prestador.codigo_municipio = empresa.CodigoMunicipio
+                              model.optante_simples_nacional = empresa.RegimeTributario === 1
                               setModel({ ...model })
                             }}
                           >
@@ -206,9 +211,10 @@ const ModalEmitirNFS = (props) => {
                             type="text"
                             id="logradouro_cliente"
                             name="logradouro_cliente"
-                            value={model.tomador.logradouro}
+                            value={model.tomador?.endereco?.logradouro || ''}
                             onChange={(e) => {
-                              model.tomador.logradouro = e.target.value
+                              if (!model.tomador.endereco) model.tomador.endereco = {};
+                              model.tomador.endereco.logradouro = e.target.value
                               setModel({ ...model, tomador: model.tomador })
                             }}
                           />
@@ -325,15 +331,16 @@ const ModalEmitirNFS = (props) => {
                             type="select"
                             id="municipio_cliente"
                             name="municipio_cliente"
-                            value={model.tomador.codigo_municipio}
+                            value={model.tomador?.endereco?.codigo_municipio || ''}
                             onChange={(e) => {
-                              model.tomador.codigo_municipio = e.target.value
-                              if (model.tomador.codigo_municipio === model.prestador.codigo_municipio) model.tributacao_rps = 'T'
+                              if (!model.tomador.endereco) model.tomador.endereco = {};
+                              model.tomador.endereco.codigo_municipio = e.target.value
+                              if (model.tomador.endereco.codigo_municipio === model.prestador.codigo_municipio) model.tributacao_rps = 'T'
                               setModel({ ...model, tomador: model.tomador })
                             }}
                           >
                             <option value={''}></option>
-                            {cidades.filter(f => f.Uf === model.tomador.uf).map((x) => (
+                            {cidades.filter(f => f.Uf === model.tomador?.endereco?.uf).map((x) => (
                               <option value={x.Codigo}>{x.Nome}</option>
                             ))}
                           </Input>
@@ -408,7 +415,7 @@ const ModalEmitirNFS = (props) => {
                             id="tributacao_rps"
                             name="tributacao_rps"
                             value={model.tributacao_rps}
-                            disabled={model.tomador.codigo_municipio === model.prestador.codigo_municipio}
+                            disabled={model.tomador?.endereco?.codigo_municipio === model.prestador.codigo_municipio}
                             onChange={(e) => setModel({ ...model, [e.target.name]: e.target.value })}
                           >
                             <option value={''}></option>
@@ -473,7 +480,7 @@ const ModalEmitirNFS = (props) => {
                             type="select"
                             id="iss_retido"
                             name="iss_retido"
-                            value={String(model.servico?.iss_retido === true)}
+                            value={String(isVerdadeiro(model.servico?.iss_retido))}
                             onChange={(e) => {
                               model.servico.iss_retido = e.target.value === 'true'
                               setModel({ ...model, servico: model.servico })
@@ -598,6 +605,37 @@ const ModalEmitirNFS = (props) => {
                           />
                         </FormGroup>
                       </Col>
+                      <Col md={3}>
+                        <FormGroup>
+                          <Label
+                            style={{ fontSize: "12px" }}
+                            className="font-weight-bolder" >
+                            Local da Prestação (Município)
+                          </Label>
+                          <Input
+                            type="select"
+                            id="codigo_municipio_servico"
+                            name="codigo_municipio_servico"
+                            value={model.servico?.codigo_municipio || model.tomador?.endereco?.codigo_municipio || ''}
+                            onChange={(e) => {
+                              const cod = e.target.value;
+                              const fora = Boolean(cod) && cod !== String(model.prestador?.codigo_municipio || '3509502');
+                              model.imovel = imovelAoTrocarLocal(model, cod);
+                              model.servico.codigo_municipio = cod;
+                              model.servico.iss_retido = fora;
+                              setModel({ ...model, servico: model.servico });
+                            }}
+                          >
+                            <option value="">Selecione...</option>
+                            {cidades?.map((c) => (
+                              <option key={c.Codigo} value={c.Codigo?.toString()}>
+                                {c.Nome} - {c.Uf} ({c.Codigo})
+                              </option>
+                            ))}
+                          </Input>
+                        </FormGroup>
+                      </Col>
+                      <NfseNacionalCampos dados={model} onChange={setModel} />
                     </Row>}
                     {aba === 2 && <Card className='ml-1 mr-1'>
                       {model.itens?.map(

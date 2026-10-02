@@ -26,6 +26,13 @@ import {
 import moment from "moment";
 import { FiMinusCircle } from "react-icons/fi";
 import { cidades } from "../../../../../utility/cidades_ibge";
+import NfseNacionalCampos, {
+  aplicarPadroesNacionais,
+  enderecoImovelDoTomador,
+  imovelAoTrocarLocal,
+  imovelIncompleto,
+  isVerdadeiro,
+} from "./NfseNacionalCampos";
 
 const ModalEdicaoFaturamento = (props) => {
   const {
@@ -89,8 +96,9 @@ const ModalEdicaoFaturamento = (props) => {
             iss_retido: false,
             aliquota_pis: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 0.65,
             aliquota_cofins: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 3,
-            aliquota_ir: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 1,
+            aliquota_ir: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 1.5,
             aliquota_csll: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 1,
+            aliquota_inss: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 3.5,
             base_calculo: faturamento.ValorRateado
           }, 
           itens: [
@@ -140,13 +148,24 @@ const ModalEdicaoFaturamento = (props) => {
           dados.tomador.cnpj = tomadorDoc;
           delete dados.tomador.cpf;
         }
-        dados.natureza_operacao = isFora ? '2' : '1';
-        dados.tributacao_rps = isFora ? 'E' : 'T';
         if (!dados.servico) dados.servico = {};
-        dados.servico.codigo_municipio = isFora ? tomadorMun : prestadorMun;
-        dados.servico.iss_retido = isFora ? 1 : 0;
+        // Local da prestação: mantém o município escolhido na tela; sem escolha, o do tomador
+        if (!dados.servico.local_prestacao_manual || !dados.servico.codigo_municipio) {
+          dados.servico.codigo_municipio = tomadorMun || prestadorMun;
+        }
+        const localFora = String(dados.servico.codigo_municipio) !== prestadorMun;
+        dados.natureza_operacao = localFora ? '2' : '1';
+        dados.tributacao_rps = localFora ? 'E' : 'T';
+        dados.servico.iss_retido = (dados.servico.iss_retido === undefined || dados.servico.iss_retido === null || dados.servico.iss_retido === '')
+          ? localFora
+          : isVerdadeiro(dados.servico.iss_retido);
         dados.servico.codigo_cnae = faturamento.Empresa?.Cnae;
         dados.servico.item_lista_servico = '0710';
+        // Padrão nacional (Campinas, desde 01/10/2026): códigos e endereço do imóvel
+        aplicarPadroesNacionais(dados.servico);
+        if (imovelIncompleto(dados.imovel) && String(dados.servico.codigo_municipio) === tomadorMun) {
+          dados.imovel = enderecoImovelDoTomador(dados.tomador);
+        }
         setDadosFatura(dados)
       }
       setAba(1)
@@ -157,7 +176,7 @@ const ModalEdicaoFaturamento = (props) => {
   const isButtonDisabled = model.TipoFatura === 'CTE' ? (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento || !dadosFatura.cfop || !dadosFatura.natureza_operacao || !dadosFatura.uf_envio || !dadosFatura.municipio_envio || !dadosFatura.uf_inicio || !dadosFatura.municipio_inicio
     || !dadosFatura.uf_fim || !dadosFatura.municipio_fim || !dadosFatura.indicador_inscricao_estadual_tomador || !dadosFatura.tomador || !dadosFatura.valor_total || !dadosFatura.valor_receber || !dadosFatura.cnpj_cliente
     || !dadosFatura.inscricao_estadual_cliente || !dadosFatura.nome_cliente || !dadosFatura.logradouro_cliente || !dadosFatura.numero_cliente || !dadosFatura.bairro_cliente || !dadosFatura.cep_cliente || !dadosFatura.uf_cliente || !dadosFatura.municipio_cliente || !dadosFatura.icms_situacao_tributaria)
-    : model.TipoFatura === 'NF' ? (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento || dadosFatura?.servico?.iss_retido === undefined || dadosFatura?.servico?.iss_retido === null || dadosFatura?.servico?.iss_retido === '' || !dadosFatura?.servico?.aliquota || !dadosFatura?.itens?.length)
+    : model.TipoFatura === 'NF' ? (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento || dadosFatura?.servico?.iss_retido === undefined || dadosFatura?.servico?.iss_retido === null || dadosFatura?.servico?.iss_retido === '' || !dadosFatura?.servico?.aliquota || !dadosFatura?.itens?.length || imovelIncompleto(dadosFatura?.imovel))
     : (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento);
 
   const salvarCTE = (cidades, salvar) => {
@@ -265,25 +284,17 @@ const ModalEdicaoFaturamento = (props) => {
     dadosFatura.servico.valor_csll = model.ValorRateado * (dadosFatura.servico?.aliquota_csll || 0) / 100
     // dadosFatura.servico.valor_iss = model.ValorRateado * (dadosFatura.servico?.aliquota || 0) / 100
 
-    // Garantir regras tributárias de Campinas / LC 116/2003
+    // Local da prestação (LC 116/2003, art. 3º, VII): o município escolhido na tela,
+    // ou o do tomador quando nada foi escolhido. ISS retido segue a escolha da tela.
     const tomadorMun = dadosFatura.tomador?.endereco?.codigo_municipio && String(dadosFatura.tomador.endereco.codigo_municipio).replace(/\D/g, '');
     const prestadorMun = model.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
-    const localPrestacao = dadosFatura.servico?.codigo_municipio && String(dadosFatura.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
-      ? String(dadosFatura.servico.codigo_municipio).replace(/\D/g, '')
-      : (tomadorMun || prestadorMun);
-    const isFora = localPrestacao && localPrestacao !== prestadorMun;
+    const localPrestacao = String(dadosFatura.servico?.codigo_municipio || tomadorMun || prestadorMun).replace(/\D/g, '');
+    const isFora = localPrestacao !== prestadorMun;
 
-    if (isFora) {
-      dadosFatura.natureza_operacao = '2';
-      dadosFatura.tributacao_rps = 'E';
-      dadosFatura.servico.codigo_municipio = localPrestacao;
-      dadosFatura.servico.iss_retido = 1;
-    } else {
-      dadosFatura.natureza_operacao = '1';
-      dadosFatura.tributacao_rps = 'T';
-      dadosFatura.servico.codigo_municipio = prestadorMun;
-      dadosFatura.servico.iss_retido = dadosFatura.servico?.iss_retido === true || dadosFatura.servico?.iss_retido === 'true' || dadosFatura.servico?.iss_retido === 1 || dadosFatura.servico?.iss_retido === '1';
-    }
+    dadosFatura.natureza_operacao = isFora ? '2' : '1';
+    dadosFatura.tributacao_rps = isFora ? 'E' : 'T';
+    dadosFatura.servico.codigo_municipio = localPrestacao;
+    dadosFatura.servico.iss_retido = isVerdadeiro(dadosFatura.servico?.iss_retido);
 
     for (var property in dadosFatura) {
       if (typeof dadosFatura[property] === 'string') dadosFatura[property] = dadosFatura[property]?.trimEnd()
@@ -1581,7 +1592,7 @@ const ModalEdicaoFaturamento = (props) => {
                             type="select"
                             id="iss_retido"
                             name="iss_retido"
-                            value={String(dadosFatura.servico?.iss_retido === true)}
+                            value={String(isVerdadeiro(dadosFatura.servico?.iss_retido))}
                             onChange={(e) => {
                               dadosFatura.servico.iss_retido = e.target.value === 'true'
                               setDadosFatura({ ...dadosFatura, servico: dadosFatura.servico })
@@ -1702,11 +1713,13 @@ const ModalEdicaoFaturamento = (props) => {
                             onChange={(e) => {
                               const cod = e.target.value;
                               const prestMun = model.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
-                              const fora = cod && cod !== prestMun;
+                              const fora = Boolean(cod) && cod !== prestMun;
+                              dadosFatura.imovel = imovelAoTrocarLocal(dadosFatura, cod);
                               dadosFatura.servico.codigo_municipio = cod;
+                              dadosFatura.servico.local_prestacao_manual = true;
                               dadosFatura.natureza_operacao = fora ? '2' : '1';
                               dadosFatura.tributacao_rps = fora ? 'E' : 'T';
-                              dadosFatura.servico.iss_retido = fora ? 1 : 0;
+                              dadosFatura.servico.iss_retido = fora;
                               setDadosFatura({ ...dadosFatura, servico: dadosFatura.servico });
                             }}
                           >
@@ -1738,6 +1751,7 @@ const ModalEdicaoFaturamento = (props) => {
                           />
                         </FormGroup>
                       </Col>
+                      <NfseNacionalCampos dados={dadosFatura} onChange={setDadosFatura} />
                     </Row>}
                     {aba === 2 && <Card className='ml-1 mr-1'>
                       {dadosFatura.itens?.map(

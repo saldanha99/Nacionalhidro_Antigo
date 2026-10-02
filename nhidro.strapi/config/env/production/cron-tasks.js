@@ -9,6 +9,15 @@ module.exports = {
             tz: 'America/Sao_Paulo'
         }
     },
+    atualizarNfseProcessando: {
+        task: async ({ strapi }) => {
+            await strapi.services["api::faturamento.faturamento"].atualizar_nfse_processando();
+        },
+        options: {
+            rule: '*/2 * * * *',
+            tz: 'America/Sao_Paulo'
+        }
+    },
     dailyBackup: {
         task: async ({ strapi }) => {
             await strapi.plugin('strapi-plugin-akatecnologia')

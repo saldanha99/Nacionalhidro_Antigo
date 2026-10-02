@@ -169,7 +169,8 @@ const FaturamentoStatusFaturamento = (props) => {
   }, [props?.stateNFS]);
 
   useEffectAfterMount(() => {
-    MySwal.fire('Falha ao emitir!', `A nota  não foi emitida, favor conferir no portal da Focus, pela url https://app-v2.focusnfe.com.br, qual a razão do erro.`, 'error')
+    const motivo = props.errorNFS?.msg?.mensagem;
+    MySwal.fire('Falha ao emitir!', motivo ? `A nota não foi emitida. ${motivo}` : `A nota não foi emitida, favor conferir no portal da Focus, pela url https://app-v2.focusnfe.com.br, qual a razão do erro.`, 'error')
   }, [props?.errorNFS]);
 
   useEffectAfterMount(() => {
@@ -269,27 +270,8 @@ const FaturamentoStatusFaturamento = (props) => {
           model.FocusReferencia = null
           model.DadosWebHook = null
           model.Observacoes = null
-          if (data.DadosFaturamento?.servico) {
-            const df = { ...data.DadosFaturamento };
-            const tomadorMun = df.tomador?.endereco?.codigo_municipio && String(df.tomador.endereco.codigo_municipio).replace(/\D/g, '');
-            const prestadorMun = df.prestador?.codigo_municipio ? String(df.prestador.codigo_municipio).replace(/\D/g, '') : '3509502';
-            const localPrestacao = df.servico?.codigo_municipio && String(df.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
-              ? String(df.servico.codigo_municipio).replace(/\D/g, '')
-              : (tomadorMun || prestadorMun);
-            const isFora = localPrestacao && localPrestacao !== prestadorMun;
-
-            if (isFora) {
-              df.natureza_operacao = '2';
-              df.tributacao_rps = 'E';
-              df.servico.codigo_municipio = localPrestacao;
-              df.servico.iss_retido = 1;
-            } else {
-              df.natureza_operacao = '1';
-              df.tributacao_rps = 'T';
-              df.servico.codigo_municipio = prestadorMun;
-            }
-            model.DadosFaturamento = df;
-          }
+          // O local da prestação e o ISS retido ficam como estavam; a tela de emissão
+          // mostra os valores salvos para conferência antes de gerar de novo.
           props.alterarFaturamento(data.id, model);
       }
     });

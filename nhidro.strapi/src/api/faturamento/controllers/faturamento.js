@@ -84,7 +84,7 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
   
         return {
             error: !resp.retorno?.success,
-            data: resp.referencia
+            data: resp.retorno?.success ? resp.referencia : resp.retorno
         };
     },
     buscar_relatorio: async (ctx, next) => {

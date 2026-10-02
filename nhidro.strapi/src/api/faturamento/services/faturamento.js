@@ -5,6 +5,7 @@ const relatorio = require("../../../services/files/index");
 const email = require("../../../services/email/index");
 const moment = require("moment");
 const request = require('request');
+const nfseNacional = require('../../../../utils/nfse-nacional');
 
 /**
  * faturamento service.
@@ -21,16 +22,30 @@ const cleanEmptyFields = (obj) => {
     }
 };
 
-const nfse = async (faturamento, cliente) => {
-    const api = await strapi.db.query("api::configuracao.configuracao").findOne({
-        where: {
-            descricao: {
-                $eq: 'Focus_Api',
-            }
+const focusRequest = (options) => new Promise((resolve, reject) => {
+    request(options, function (error, response) {
+        if (error) {
+            return reject(error);
+        }
+        try {
+            resolve(JSON.parse(response.body));
+        } catch (err) {
+            reject(new Error('Resposta inválida da Focus NFe: ' + response.body));
         }
     });
+});
 
-    let body = JSON.parse(JSON.stringify(faturamento.DadosFaturamento));
+const buscarApiFocus = () => strapi.db.query("api::configuracao.configuracao").findOne({
+    where: {
+        descricao: {
+            $eq: 'Focus_Api',
+        }
+    }
+});
+
+// Normaliza o JSON salvo (formato antigo) antes de montar qualquer payload.
+const prepararDadosNfse = (dadosFaturamento) => {
+    let body = JSON.parse(JSON.stringify(dadosFaturamento || {}));
 
     delete body.servico?.discriminacao_aux;
     delete body.EmpresaBanco;
@@ -43,7 +58,7 @@ const nfse = async (faturamento, cliente) => {
     if (body.prestador) {
         if (body.prestador.cnpj) body.prestador.cnpj = body.prestador.cnpj.replace(/\D/g, '');
         if (body.prestador.inscricao_municipal) body.prestador.inscricao_municipal = body.prestador.inscricao_municipal.replace(/\D/g, '');
-        if (body.prestador.codigo_municipio) body.prestador.codigo_municipio = body.prestador.codigo_municipio.replace(/\D/g, '');
+        if (body.prestador.codigo_municipio) body.prestador.codigo_municipio = String(body.prestador.codigo_municipio).replace(/\D/g, '');
     }
 
     // Sanitização e formatação do tomador
@@ -57,7 +72,7 @@ const nfse = async (faturamento, cliente) => {
         }
         if (body.tomador.endereco) {
             if (body.tomador.endereco.cep) body.tomador.endereco.cep = body.tomador.endereco.cep.replace(/\D/g, '');
-            if (body.tomador.endereco.codigo_municipio) body.tomador.endereco.codigo_municipio = body.tomador.endereco.codigo_municipio.replace(/\D/g, '');
+            if (body.tomador.endereco.codigo_municipio) body.tomador.endereco.codigo_municipio = String(body.tomador.endereco.codigo_municipio).replace(/\D/g, '');
             if (body.tomador.endereco.logradouro) body.tomador.endereco.logradouro = body.tomador.endereco.logradouro.trim();
             if (body.tomador.endereco.numero) body.tomador.endereco.numero = body.tomador.endereco.numero.trim();
             if (body.tomador.endereco.bairro) body.tomador.endereco.bairro = body.tomador.endereco.bairro.trim();
@@ -66,33 +81,6 @@ const nfse = async (faturamento, cliente) => {
     }
 
     if (!body.servico) body.servico = {};
-
-    // Regras tributárias municipais:
-    // Determinação do local da prestação do serviço (LC 116/2003, Art. 3, VII / Item 07.10)
-    // Quando o serviço for executado fora do município do prestador (Campinas 3509502):
-    // - natureza_operacao: '2' (Tributação fora do município)
-    // - tributacao_rps: 'E' (Tributação no município da prestação / Isento em Campinas)
-    // - servico.codigo_municipio: código IBGE do local onde o serviço foi prestado (tomador/obra)
-    // - servico.iss_retido: 1 (ou true)
-    const prestadorMun = body.prestador?.codigo_municipio ? String(body.prestador.codigo_municipio).replace(/\D/g, '') : '3509502';
-    const tomadorMun = body.tomador?.endereco?.codigo_municipio ? String(body.tomador.endereco.codigo_municipio).replace(/\D/g, '') : '';
-    const localPrestacao = body.servico?.codigo_municipio && String(body.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
-        ? String(body.servico.codigo_municipio).replace(/\D/g, '')
-        : (tomadorMun || prestadorMun);
-
-    const isPrestadoFora = localPrestacao && localPrestacao !== prestadorMun;
-
-    if (isPrestadoFora) {
-        body.natureza_operacao = '2';
-        body.tributacao_rps = 'E';
-        body.servico.codigo_municipio = localPrestacao;
-        body.servico.iss_retido = 1;
-    } else {
-        body.natureza_operacao = '1';
-        body.tributacao_rps = 'T';
-        body.servico.codigo_municipio = prestadorMun;
-        body.servico.iss_retido = body.servico.iss_retido === true || body.servico.iss_retido === 'true' || body.servico.iss_retido === 1 || body.servico.iss_retido === '1';
-    }
 
     if (body.itens && Array.isArray(body.itens)) {
         body.servico.valor_servicos = body.itens.reduce((total, item) => total + (Number(item.valor_total) || 0), 0);
@@ -105,39 +93,114 @@ const nfse = async (faturamento, cliente) => {
         body.servico.discriminacao = body.servico.discriminacao.replace(/\uFFFD/g, ' ');
     }
 
-    console.log('[nfse] Body preparado para Focus NFe:', JSON.stringify(body, null, 2));
-    faturamento.FocusReferencia = 'fat_' + faturamento.id + '_' + moment(new Date).utc().format("YYYYMMDDHHmmss");
-    var options = {
+    return body;
+};
+
+// Emissor antigo de Campinas (ABRASF). Só o Simples Nacional ainda usa, até 31/10/2026.
+const aplicarRegrasAbrasf = (body) => {
+    // Local da prestação (LC 116/2003, art. 3º, VII / item 07.10): respeita a escolha
+    // da tela; fora de Campinas a natureza é 2 e a tributação "E".
+    const prestadorMun = body.prestador?.codigo_municipio || nfseNacional.CAMPINAS;
+    const localPrestacao = nfseNacional.resolverLocalPrestacao(body);
+
+    if (localPrestacao !== prestadorMun) {
+        body.natureza_operacao = '2';
+        body.tributacao_rps = 'E';
+        body.servico.codigo_municipio = localPrestacao;
+    } else {
+        body.natureza_operacao = '1';
+        body.tributacao_rps = 'T';
+        body.servico.codigo_municipio = prestadorMun;
+    }
+    body.servico.iss_retido = body.servico.iss_retido === true || body.servico.iss_retido === 'true' || body.servico.iss_retido === 1 || body.servico.iss_retido === '1';
+    delete body.imovel;
+    return body;
+};
+
+/**
+ * Envia a NFS-e para a Focus. Padrão nacional (/v2/nfsen) para quem não é do
+ * Simples; emissor antigo (/v2/nfse) só para o Simples até 31/10/2026.
+ * Devolve { referencia, retorno } sem lançar exceção para erro de validação.
+ */
+const enviarNfseFocus = async ({ dadosFaturamento, token, referenciaBase }) => {
+    const api = await buscarApiFocus();
+    const body = prepararDadosNfse(dadosFaturamento);
+    const nacional = nfseNacional.usarPadraoNacional(body);
+    const sufixo = moment(new Date).utc().format("YYYYMMDDHHmmss");
+
+    let payload;
+    let referencia;
+    let endpoint;
+    if (nacional) {
+        try {
+            payload = nfseNacional.montarDpsNacional(body);
+        } catch (err) {
+            return { referencia: null, retorno: { success: false, msg: { mensagem: err.message } } };
+        }
+        referencia = nfseNacional.PREFIXO_REFERENCIA_NACIONAL + referenciaBase + '_' + sufixo;
+        endpoint = '/v2/nfsen';
+    } else {
+        payload = aplicarRegrasAbrasf(body);
+        referencia = 'fat_' + referenciaBase + '_' + sufixo;
+        endpoint = '/v2/nfse';
+    }
+
+    console.log(`[nfse] Body preparado para Focus NFe (${endpoint}):`, JSON.stringify(payload, null, 2));
+    const req = await focusRequest({
         'method': 'POST',
-        'url': api.Valor + '/v2/nfse?ref=' + faturamento.FocusReferencia,
+        'url': api.Valor + endpoint + '?ref=' + referencia,
         'headers': {
             'Content-Type': 'application/json'
         },
         'auth': {
-            'user': faturamento.Empresa.FocusToken,
+            'user': token,
             'password': ''
         },
-        body: JSON.stringify(body)
-    };
-
-    const req = await new Promise((resolve, reject) => {
-        request(options, function (error, response) {
-            if (error) {
-                return reject(error);
-            }
-            try {
-                resolve(JSON.parse(response.body));
-            } catch (err) {
-                reject(new Error('Resposta inválida da Focus NFe: ' + response.body));
-            }
-        });
+        body: JSON.stringify(payload)
     });
 
     console.log('[nfse] Resposta Focus NFe:', req);
     const retorno = {};
-    retorno.msg = req;
     retorno.success = req.status === 'processando_autorizacao' || req.status === 'autorizado';
+    retorno.msg = retorno.success ? req : { ...req, mensagem: 'Focus NFe recusou a nota: ' + nfseNacional.mensagemErroFocus(req) };
+    return { referencia, retorno };
+};
+
+const nfse = async (faturamento, cliente) => {
+    const { referencia, retorno } = await enviarNfseFocus({
+        dadosFaturamento: faturamento.DadosFaturamento,
+        token: faturamento.Empresa.FocusToken,
+        referenciaBase: faturamento.id,
+    });
+    if (referencia) faturamento.FocusReferencia = referencia;
     return { faturamento, retorno };
+};
+
+// PDF da nota autorizada. No padrão nacional o campo "url" é a consulta pública
+// (página HTML); o PDF que vai para o cliente é o DANFSe.
+const urlPdfNota = (retornoFocus) => {
+    if (nfseNacional.isReferenciaNacional(retornoFocus?.ref)) return retornoFocus?.url_danfse || retornoFocus?.url;
+    return retornoFocus?.url;
+};
+
+// XML da NFS-e no mesmo bucket do DANFSe.
+const urlXmlNota = (retornoFocus) => {
+    const danfse = retornoFocus?.url_danfse;
+    if (danfse && retornoFocus?.caminho_xml_nota_fiscal) {
+        try {
+            return new URL(danfse).origin + retornoFocus.caminho_xml_nota_fiscal;
+        } catch (err) {
+            // segue para a regra antiga
+        }
+    }
+    return danfse?.replace('.pdf', '-nfse.xml')?.replace('DANFSEs/NFSe', 'XMLsNFSe/');
+};
+
+// Endpoint da Focus conforme o padrão em que a nota foi emitida.
+const urlNotaFocus = (api, faturamento, cte) => {
+    if (cte) return api.Valor + '/v2/cte/' + faturamento.FocusReferencia;
+    const endpoint = nfseNacional.isReferenciaNacional(faturamento.FocusReferencia) ? '/v2/nfsen/' : '/v2/nfse/';
+    return api.Valor + endpoint + faturamento.FocusReferencia;
 };
 
 const rl = async (faturamento, cliente) => {
@@ -236,10 +299,13 @@ const cancelar_nota = async (faturamento, cte) => {
         }
     });
 
-    const url = cte ? api.Valor + '/v2/cte/' + faturamento.FocusReferencia : api.Valor + '/v2/nfse/' + faturamento.FocusReferencia;
+    const url = urlNotaFocus(api, faturamento, cte);
     var options = {
         'method': 'DELETE',
         'url': url,
+        'headers': {
+            'Content-Type': 'application/json'
+        },
         'auth': {
             'user': faturamento.Empresa.FocusToken,
             'password': ''
@@ -295,25 +361,11 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
             updatePayload.EmpresaBanco = faturamentoInput.EmpresaBanco.id;
         }
 
-        // Sanitiza regra fiscal de prestação do serviço no JSON de faturamento salvo
+        // Grava o local da prestação escolhido (ou o do tomador, se nada foi escolhido).
+        // As regras de cada padrão (nacional ou ABRASF) são aplicadas na hora do envio.
         if (updatePayload.DadosFaturamento?.servico) {
             const df = updatePayload.DadosFaturamento;
-            const tomadorMun = df.tomador?.endereco?.codigo_municipio && String(df.tomador.endereco.codigo_municipio).replace(/\D/g, '');
-            const prestadorMun = df.prestador?.codigo_municipio ? String(df.prestador.codigo_municipio).replace(/\D/g, '') : '3509502';
-            const localPrestacao = df.servico?.codigo_municipio && String(df.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
-                ? String(df.servico.codigo_municipio).replace(/\D/g, '')
-                : (tomadorMun || prestadorMun);
-
-            if (localPrestacao && localPrestacao !== prestadorMun) {
-                df.natureza_operacao = '2';
-                df.tributacao_rps = 'E';
-                df.servico.codigo_municipio = localPrestacao;
-                df.servico.iss_retido = 1;
-            } else {
-                df.natureza_operacao = '1';
-                df.tributacao_rps = 'T';
-                df.servico.codigo_municipio = prestadorMun;
-            }
+            df.servico.codigo_municipio = nfseNacional.resolverLocalPrestacao(df);
         }
 
         // 2. Salva no banco com payload limpo (evita erro 500 do Strapi com lixo no faturamentoInput)
@@ -374,7 +426,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
             }
         } catch (e) {
             console.error('[gerar] Fatal error during generation:', e);
-            return { success: false, error: 'Erro fatal ao gerar: ' + (e.message || String(e)) };
+            return { success: false, error: 'Erro fatal ao gerar: ' + (e.message || String(e)), msg: { mensagem: 'Erro ao gerar: ' + (e.message || String(e)) } };
         }
 
         // 4. Salva o resultado final da emissão  
@@ -429,7 +481,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
             files.push(
             {
                 NomeArquivo: 'fatura_nacional_hidro.xml',
-                UrlArquivo: nota.DadosWebHook?.url_danfse?.replace('.pdf', '-nfse.xml')?.replace('DANFSEs/NFSe', 'XMLsNFSe/'),
+                UrlArquivo: urlXmlNota(nota.DadosWebHook),
                 IsUrl: true
             })
 
@@ -564,7 +616,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         
         faturamento.DadosWebHook = data;
         faturamento.Nota = data.numero;
-        faturamento.UrlArquivoNota = data.url;
+        faturamento.UrlArquivoNota = urlPdfNota(data);
         faturamento.Status = data.status === 'autorizado' ? Enum_StatusFaturamento.Emitido : Enum_StatusFaturamento.Falha;
         const msgErro = data.erros ? data.erros.map(e => `${e.codigo ? e.codigo + ': ' : ''}${e.mensagem}`).join('; ') : (data.mensagem_sefaz || '');
         faturamento.Observacoes = msgErro ? `${faturamento.Observacoes || ''}; ${msgErro}` : faturamento.Observacoes;
@@ -613,13 +665,6 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         console.log('focus_web_hook_cte: faturamento atualizado id:', faturamento.id, 'status:', faturamento.Status);
     },
     emitir_nfse: async (data) => {
-        const api = await strapi.db.query("api::configuracao.configuracao").findOne({
-            where: {
-                descricao: {
-                    $eq: 'Focus_Api',
-                }
-            }
-        });
         const empresa = await strapi.db.query("api::empresa.empresa").findOne({
             where: {
                 id: {
@@ -627,91 +672,21 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
                 }
             }
         });
+        if (!empresa?.FocusToken) {
+            return { referencia: null, retorno: { success: false, msg: { mensagem: 'Empresa sem token Focus configurado.' } } };
+        }
         delete data.empresa;
         delete data.empresa_id;
-        delete data.servico?.discriminacao_aux;
-        delete data.EmpresaBanco;
-        delete data.data_vencimento;
-        delete data.data_emissao_aux;
-        delete data.iss_retido;
-        cleanEmptyFields(data);
-
-        if (data.prestador) {
-            if (data.prestador.cnpj) data.prestador.cnpj = data.prestador.cnpj.replace(/\D/g, '');
-            if (data.prestador.inscricao_municipal) data.prestador.inscricao_municipal = data.prestador.inscricao_municipal.replace(/\D/g, '');
-            if (data.prestador.codigo_municipio) data.prestador.codigo_municipio = data.prestador.codigo_municipio.replace(/\D/g, '');
-        }
-        if (data.tomador) {
-            if (data.tomador.cnpj) data.tomador.cnpj = data.tomador.cnpj.replace(/\D/g, '');
-            if (data.tomador.cpf) data.tomador.cpf = data.tomador.cpf.replace(/\D/g, '');
-            if (data.tomador.inscricao_municipal) {
-                data.tomador.inscricao_municipal = data.tomador.inscricao_municipal.replace(/\D/g, '') || '000000';
-            } else {
-                data.tomador.inscricao_municipal = '000000';
-            }
-            if (data.tomador.endereco) {
-                if (data.tomador.endereco.cep) data.tomador.endereco.cep = data.tomador.endereco.cep.replace(/\D/g, '');
-                if (data.tomador.endereco.codigo_municipio) data.tomador.endereco.codigo_municipio = data.tomador.endereco.codigo_municipio.replace(/\D/g, '');
-                if (data.tomador.endereco.logradouro) data.tomador.endereco.logradouro = data.tomador.endereco.logradouro.trim();
-                if (data.tomador.endereco.numero) data.tomador.endereco.numero = data.tomador.endereco.numero.trim();
-                if (data.tomador.endereco.bairro) data.tomador.endereco.bairro = data.tomador.endereco.bairro.trim();
-                if (data.tomador.endereco.uf) data.tomador.endereco.uf = data.tomador.endereco.uf.trim();
-            }
+        if (data.prestador && !data.prestador.codigo_municipio) {
+            data.prestador.codigo_municipio = empresa.CodigoMunicipio;
         }
 
-        if (!data.servico) data.servico = {};
-        const prestadorMun = data.prestador?.codigo_municipio || empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
-        const tomadorMun = data.tomador?.endereco?.codigo_municipio ? String(data.tomador.endereco.codigo_municipio).replace(/\D/g, '') : '';
-        const localPrestacao = data.servico?.codigo_municipio && String(data.servico.codigo_municipio).replace(/\D/g, '') !== prestadorMun
-            ? String(data.servico.codigo_municipio).replace(/\D/g, '')
-            : (tomadorMun || prestadorMun);
-
-        const isPrestadoFora = localPrestacao && localPrestacao !== prestadorMun;
-
-        if (isPrestadoFora) {
-            data.natureza_operacao = '2';
-            data.tributacao_rps = 'E';
-            data.servico.codigo_municipio = localPrestacao;
-            data.servico.iss_retido = 1;
-        } else {
-            data.natureza_operacao = '1';
-            data.tributacao_rps = 'T';
-            data.servico.codigo_municipio = prestadorMun;
-            data.servico.iss_retido = data.servico.iss_retido === true || data.servico.iss_retido === 'true' || data.servico.iss_retido === 1 || data.servico.iss_retido === '1';
-        }
-
-        const referencia = 'fat_' + (empresa.Descricao || 'emp') + '_' + moment(new Date).utc().format("YYYYMMDDHHmmss");
-
-        var options = {
-            'method': 'POST',
-            'url': api.Valor + '/v2/nfse?ref=' + referencia,
-            'headers': {
-                'Content-Type': 'application/json'
-            },
-            'auth': {
-                'user': empresa.FocusToken,
-                'password': ''
-            },
-            body: JSON.stringify(data)
-        };
-
-        const req = await new Promise((resolve, reject) => {
-            request(options, function (error, response) {
-                if (error) {
-                    return reject(error);
-                }
-                try {
-                    resolve(JSON.parse(response.body));
-                } catch (err) {
-                    reject(new Error('Resposta inválida da Focus NFe: ' + response.body));
-                }
-            });
+        const { referencia, retorno } = await enviarNfseFocus({
+            dadosFaturamento: data,
+            token: empresa.FocusToken,
+            referenciaBase: String(empresa.Descricao || 'emp').replace(/[^A-Za-z0-9]/g, '').slice(0, 20) || 'emp',
         });
-
-        console.log('[emitir_nfse] Resposta Focus:', req);
-        const retorno = {};
-        retorno.msg = req;
-        retorno.success = req.status === 'processando_autorizacao' || req.status === 'autorizado';
+        console.log('[emitir_nfse] Referência:', referencia, 'sucesso:', retorno.success);
         return { referencia, retorno };
     },
     consultar_nfse: async (data) => {
@@ -728,9 +703,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         if (!faturamento.Empresa?.FocusToken) return { success: false, msg: 'Empresa sem token Focus configurado.' };
 
         const isCte = faturamento.TipoFatura === 'CTE';
-        const url = isCte
-            ? `${api.Valor}/v2/cte/${faturamento.FocusReferencia}`
-            : `${api.Valor}/v2/nfse/${faturamento.FocusReferencia}`;
+        const url = urlNotaFocus(api, faturamento, isCte);
 
         console.log('[consultar_nfse] Consultando Focus:', url);
 
@@ -755,7 +728,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
             const updateData = {
                 DadosWebHook: req,
                 Nota: req.numero,
-                UrlArquivoNota: req.caminho_dacte || req.url,
+                UrlArquivoNota: req.caminho_dacte || urlPdfNota({ ...req, ref: req.ref || faturamento.FocusReferencia }),
                 Status: Enum_StatusFaturamento.Emitido,
                 Observacoes: req.mensagem_sefaz ? `${faturamento.Observacoes || ''}; ${req.mensagem_sefaz}` : faturamento.Observacoes
             };
@@ -772,6 +745,29 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         }
 
         return { success: true, status: req.status, emitido: false, msg: `Status Focus atual: ${req.status}` };
+    },
+    // A empresa principal não tem webhook de NFS-e na Focus; esta rotina consulta as
+    // notas que ficaram "Processando" e atualiza número, PDF ou o erro da prefeitura.
+    atualizar_nfse_processando: async () => {
+        const pendentes = await strapi.db.query("api::faturamento.faturamento").findMany({
+            where: {
+                TipoFatura: { $eq: 'NF' },
+                Status: { $eq: Enum_StatusFaturamento.Processando },
+                FocusReferencia: { $notNull: true },
+                updatedAt: { $gte: moment().subtract(7, 'days').toDate() },
+            },
+            select: ['id'],
+            limit: 50,
+        });
+        for (const pendente of pendentes) {
+            try {
+                const resp = await strapi.services["api::faturamento.faturamento"].consultar_nfse({ id: pendente.id });
+                console.log('[atualizar_nfse_processando]', pendente.id, resp.status);
+            } catch (err) {
+                console.error('[atualizar_nfse_processando] Falha ao consultar', pendente.id, err?.message || err);
+            }
+        }
+        return pendentes.length;
     },
     buscar_relatorio: async (params) => {
         const query = `SELECT CASE             
