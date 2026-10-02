@@ -111,6 +111,14 @@ const ModalEdicaoFaturamento = (props) => {
             }
           ]
         }
+        // IRRF de 1,5% (orientação do contador, 02/10/2026). Fatura salva antes com o
+        // padrão antigo de 1% passa a 1,5% sem precisar digitar; outro valor é mantido.
+        if (faturamento.Empresa?.RegimeTributario !== Enum_RegimeTributario.Simples && dados.servico) {
+          const irAtual = dados.servico.aliquota_ir;
+          if (irAtual === undefined || irAtual === null || irAtual === '' || Number(irAtual) === 1) {
+            dados.servico.aliquota_ir = 1.5;
+          }
+        }
         const tomadorMun = faturamento.Cliente?.CodigoMunicipio?.replace(/\D/g, '') || dados.tomador?.endereco?.codigo_municipio?.replace(/\D/g, '');
         const prestadorMun = faturamento.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
         const isFora = tomadorMun && tomadorMun !== prestadorMun;
