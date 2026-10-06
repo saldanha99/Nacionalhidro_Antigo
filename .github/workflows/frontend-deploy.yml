@@ -31,4 +31,7 @@ jobs:
             docker compose -f docker-compose-legacy.yml build strapi-legacy
             echo "=== Deploying Swarm Stack ==="
             docker stack deploy -c docker-compose-legacy.yml nacionalhidro-legacy
+            echo "=== Forcing update on Swarm services ==="
+            docker service update --force nacionalhidro-legacy_strapi-legacy
+            docker service update --force nacionalhidro-legacy_front-legacy
             echo "=== Deployment Finished ==="
