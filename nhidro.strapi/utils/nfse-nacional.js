@@ -1,5 +1,7 @@
 'use strict';
 
+const https = require('https');
+
 /**
  * NFS-e no padrão nacional (DPS) via Focus NFe.
  *
@@ -73,6 +75,80 @@ const resolverLocalPrestacao = (dados) => {
     const prestadorMun = digitos(dados?.prestador?.codigo_municipio) || CAMPINAS;
     const tomadorMun = digitos(dados?.tomador?.endereco?.codigo_municipio);
     return digitos(dados?.servico?.codigo_municipio) || tomadorMun || prestadorMun;
+};
+
+/**
+ * Consulta o CEP no ViaCEP. Devolve { ibge, localidade, uf, ... }, { inexistente: true }
+ * quando o CEP não existe, ou null se o serviço não respondeu (não bloqueia a emissão).
+ */
+const consultarCep = (cep, timeoutMs = 5000) => new Promise((resolve) => {
+    const limpo = digitos(cep);
+    if (limpo.length !== 8) return resolve({ inexistente: true });
+    const req = https.get(`https://viacep.com.br/ws/${limpo}/json/`, { timeout: timeoutMs }, (res) => {
+        let corpo = '';
+        res.on('data', (parte) => { corpo += parte; });
+        res.on('end', () => {
+            if (res.statusCode === 400) return resolve({ inexistente: true });
+            try {
+                const json = JSON.parse(corpo);
+                if (json.erro) return resolve({ inexistente: true });
+                resolve(json);
+            } catch (err) {
+                resolve(null);
+            }
+        });
+    });
+    req.on('timeout', () => req.destroy());
+    req.on('error', () => resolve(null));
+});
+
+/**
+ * A prefeitura recusa a DPS quando o CEP do imóvel não é do município do local da
+ * prestação (erro L9999). Com o indicador 020201 o local da prestação é, por
+ * definição, onde fica o imóvel; então o município passa a seguir o CEP informado.
+ * Lança erro legível se o CEP não existir.
+ */
+const alinharLocalPrestacaoPeloImovel = async (dados) => {
+    if (!dados) return dados;
+    if (!dados.imovel) dados.imovel = {};
+
+    // Se o imóvel não tiver CEP nem logradouro, tenta usar o endereço do tomador como base
+    if (!digitos(dados.imovel.cep) && !texto(dados.imovel.logradouro) && dados.tomador?.endereco) {
+        const end = dados.tomador.endereco;
+        if (digitos(end.cep)) {
+            dados.imovel.cep = digitos(end.cep);
+            if (!texto(dados.imovel.logradouro)) dados.imovel.logradouro = texto(end.logradouro);
+            if (!texto(dados.imovel.numero)) dados.imovel.numero = texto(end.numero) || 'S/N';
+            if (!texto(dados.imovel.bairro)) dados.imovel.bairro = texto(end.bairro);
+            if (!texto(dados.imovel.complemento) && texto(end.complemento)) dados.imovel.complemento = texto(end.complemento);
+        }
+    }
+
+    const cep = digitos(dados?.imovel?.cep);
+    if (!cep) return dados;
+    const info = await consultarCep(cep);
+    if (!info) {
+        console.warn('[nfse] ViaCEP indisponível; local da prestação mantido sem validar o CEP', cep);
+        return dados;
+    }
+    if (info.inexistente) {
+        throw new Error(`O CEP do local do serviço (${cep}) não existe no ViaCEP / Correios. Corrija o endereço do imóvel antes de emitir.`);
+    }
+    const ibge = digitos(info.ibge);
+    if (!ibge) return dados;
+
+    // Se faltar logradouro ou bairro no imóvel, preenche a partir do ViaCEP
+    if (!texto(dados.imovel.logradouro) && info.logradouro) dados.imovel.logradouro = info.logradouro;
+    if (!texto(dados.imovel.bairro) && info.bairro) dados.imovel.bairro = info.bairro;
+    if (!texto(dados.imovel.complemento) && info.complemento) dados.imovel.complemento = info.complemento;
+
+    const atual = resolverLocalPrestacao(dados);
+    if (atual !== ibge) {
+        console.warn(`[nfse] Local da prestação ${atual} não corresponde ao CEP ${cep} (${info.localidade}/${info.uf} - ${ibge}); ajustado para ${ibge}.`);
+        if (!dados.servico) dados.servico = {};
+        dados.servico.codigo_municipio = ibge;
+    }
+    return dados;
 };
 
 /**
@@ -274,6 +350,8 @@ module.exports = {
     SERIE_DPS_INTEGRACAO,
     isReferenciaNacional,
     resolverLocalPrestacao,
+    consultarCep,
+    alinharLocalPrestacaoPeloImovel,
     usarPadraoNacional,
     montarDpsNacional,
     mensagemErroFocus,

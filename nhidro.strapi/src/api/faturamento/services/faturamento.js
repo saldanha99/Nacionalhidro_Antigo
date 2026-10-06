@@ -133,6 +133,7 @@ const enviarNfseFocus = async ({ dadosFaturamento, token, referenciaBase }) => {
     let endpoint;
     if (nacional) {
         try {
+            await nfseNacional.alinharLocalPrestacaoPeloImovel(body);
             payload = nfseNacional.montarDpsNacional(body);
         } catch (err) {
             return { referencia: null, retorno: { success: false, msg: { mensagem: err.message } } };
@@ -366,6 +367,13 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         if (updatePayload.DadosFaturamento?.servico) {
             const df = updatePayload.DadosFaturamento;
             df.servico.codigo_municipio = nfseNacional.resolverLocalPrestacao(df);
+        }
+        if (updatePayload.DadosFaturamento?.imovel?.cep) {
+            try {
+                await nfseNacional.alinharLocalPrestacaoPeloImovel(updatePayload.DadosFaturamento);
+            } catch (cepErr) {
+                console.warn('[gerar] Erro ao alinhar local da prestacao pelo CEP:', cepErr.message);
+            }
         }
 
         // 2. Salva no banco com payload limpo (evita erro 500 do Strapi com lixo no faturamentoInput)

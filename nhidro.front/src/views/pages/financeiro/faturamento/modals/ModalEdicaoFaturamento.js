@@ -31,6 +31,7 @@ import NfseNacionalCampos, {
   enderecoImovelDoTomador,
   imovelAoTrocarLocal,
   imovelIncompleto,
+  imovelCidadeIncompativel,
   isVerdadeiro,
 } from "./NfseNacionalCampos";
 
@@ -186,7 +187,7 @@ const ModalEdicaoFaturamento = (props) => {
   const isButtonDisabled = model.TipoFatura === 'CTE' ? (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento || !dadosFatura.cfop || !dadosFatura.natureza_operacao || !dadosFatura.uf_envio || !dadosFatura.municipio_envio || !dadosFatura.uf_inicio || !dadosFatura.municipio_inicio
     || !dadosFatura.uf_fim || !dadosFatura.municipio_fim || !dadosFatura.indicador_inscricao_estadual_tomador || !dadosFatura.tomador || !dadosFatura.valor_total || !dadosFatura.valor_receber || !dadosFatura.cnpj_cliente
     || !dadosFatura.inscricao_estadual_cliente || !dadosFatura.nome_cliente || !dadosFatura.logradouro_cliente || !dadosFatura.numero_cliente || !dadosFatura.bairro_cliente || !dadosFatura.cep_cliente || !dadosFatura.uf_cliente || !dadosFatura.municipio_cliente || !dadosFatura.icms_situacao_tributaria)
-    : model.TipoFatura === 'NF' ? (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento || dadosFatura?.servico?.iss_retido === undefined || dadosFatura?.servico?.iss_retido === null || dadosFatura?.servico?.iss_retido === '' || !dadosFatura?.servico?.aliquota || !dadosFatura?.itens?.length || imovelIncompleto(dadosFatura?.imovel))
+    : model.TipoFatura === 'NF' ? (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento || dadosFatura?.servico?.iss_retido === undefined || dadosFatura?.servico?.iss_retido === null || dadosFatura?.servico?.iss_retido === '' || !dadosFatura?.servico?.aliquota || !dadosFatura?.itens?.length || imovelIncompleto(dadosFatura?.imovel) || imovelCidadeIncompativel(dadosFatura?.imovel, dadosFatura?.servico?.codigo_municipio))
     : (!model?.EmpresaBanco || !model.DataEmissao || !model.DataVencimento);
 
   const salvarCTE = (cidades, salvar) => {
@@ -300,7 +301,8 @@ const ModalEdicaoFaturamento = (props) => {
     // ou o do tomador quando nada foi escolhido. ISS retido segue a escolha da tela.
     const tomadorMun = dadosFatura.tomador?.endereco?.codigo_municipio && String(dadosFatura.tomador.endereco.codigo_municipio).replace(/\D/g, '');
     const prestadorMun = model.Empresa?.CodigoMunicipio?.replace(/\D/g, '') || '3509502';
-    const localPrestacao = String(dadosFatura.servico?.codigo_municipio || tomadorMun || prestadorMun).replace(/\D/g, '');
+    const imovelMun = dadosFatura.imovel?.codigo_municipio ? String(dadosFatura.imovel.codigo_municipio).replace(/\D/g, '') : '';
+    const localPrestacao = String(imovelMun || dadosFatura.servico?.codigo_municipio || tomadorMun || prestadorMun).replace(/\D/g, '');
     const isFora = localPrestacao !== prestadorMun;
 
     dadosFatura.natureza_operacao = isFora ? '2' : '1';

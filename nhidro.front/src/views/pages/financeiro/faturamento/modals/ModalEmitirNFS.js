@@ -23,6 +23,7 @@ import NfseNacionalCampos, {
   aplicarPadroesNacionais,
   imovelAoTrocarLocal,
   imovelIncompleto,
+  imovelCidadeIncompativel,
   isVerdadeiro,
 } from "./NfseNacionalCampos";
 import moment from "moment";
@@ -78,7 +79,7 @@ const ModalEmitirNFS = (props) => {
 
   const isButtonDisabled = (!model?.EmpresaBanco || !model.data_emissao_aux || !model.data_vencimento || !model.empresa_id || !model.tomador?.cnpj || !model.tomador?.razao_social || !model.tomador?.endereco?.logradouro
     || !model.tomador?.endereco?.numero || !model.tomador?.endereco?.bairro || !model.tomador?.endereco?.cep || !model.tomador?.endereco?.uf || !model.tomador?.endereco?.codigo_municipio || model.servico?.iss_retido === undefined || model.servico?.iss_retido === null || model.servico?.iss_retido === '' || !model.servico?.item_lista_servico || !model.servico?.codigo_cnae
-    || !model.servico?.aliquota || !model.itens?.length || imovelIncompleto(model.imovel));
+    || !model.servico?.aliquota || !model.itens?.length || imovelIncompleto(model.imovel) || imovelCidadeIncompativel(model.imovel, model.servico?.codigo_municipio));
 
   const salvar = () => {
     const time = `${new Date().getHours()}:${new Date().getMinutes()}:${new Date().getSeconds()}`
@@ -88,7 +89,8 @@ const ModalEmitirNFS = (props) => {
     // Local da prestação: o escolhido na tela ou, sem escolha, o município do tomador
     const tomadorMun = model.tomador?.endereco?.codigo_municipio ? String(model.tomador.endereco.codigo_municipio).replace(/\D/g, '') : '';
     const prestadorMun = model.prestador?.codigo_municipio ? String(model.prestador.codigo_municipio).replace(/\D/g, '') : '3509502';
-    const localPrestacao = String(model.servico?.codigo_municipio || tomadorMun || prestadorMun).replace(/\D/g, '');
+    const imovelMun = model.imovel?.codigo_municipio ? String(model.imovel.codigo_municipio).replace(/\D/g, '') : '';
+    const localPrestacao = String(imovelMun || model.servico?.codigo_municipio || tomadorMun || prestadorMun).replace(/\D/g, '');
     const isFora = localPrestacao !== prestadorMun;
 
     model.natureza_operacao = isFora ? '2' : '1';
