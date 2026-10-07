@@ -115,7 +115,7 @@ const PropostasAbertas = (props) => {
     })
       .then((result) => {
         if (result.value) {
-          handleClose()
+          setData(data)
           setLoadingSkeleton(true)
           if (!data.id) {
             data.CriadoPor = user
@@ -289,11 +289,15 @@ const PropostasAbertas = (props) => {
   }, [props?.propostas])
 
   useEffectAfterMount(() => {
+    MySwal.close()
     handleToastSuccess()
+    handleClose()
     buscarPropostas(intervaloData)
   }, [props?.isFinishedAction])
 
   useEffectAfterMount(() => {
+    MySwal.close()
+    setLoadingSkeleton(false)
     if (props?.error) {
       let errorMsg = "Falha ao processar a requisição."
       if (typeof props.error === 'string') {

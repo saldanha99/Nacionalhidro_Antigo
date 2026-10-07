@@ -58,11 +58,15 @@ const PropostasAprovadas = (props) => {
   }, [props?.propostas])
 
   useEffectAfterMount(() => {
+    MySwal.close()
     handleToastSuccess()
+    handleClose()
     props.buscarPropostas(Enum_StatusPropostas.Aprovada, user)
   }, [props?.isFinishedAction])
 
   useEffectAfterMount(() => {
+    MySwal.close()
+    setLoadingSkeleton(false)
     if (props?.error) {
       let errorMsg = "Falha ao processar a requisição."
       if (typeof props.error === 'string') {
@@ -126,7 +130,7 @@ const PropostasAprovadas = (props) => {
     })
       .then((result) => {
         if (result.value) {
-          handleClose()
+          setData(data)
           setLoadingSkeleton(true)
           if (!data.id) {
             data.CriadoPor = user
