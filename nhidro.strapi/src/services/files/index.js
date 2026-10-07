@@ -63,8 +63,8 @@ async function getAssinaturaBase64(url) {
       if (dataBuffer.length > 50 * 1024) {
         try {
           dataBuffer = await sharp(dataBuffer)
-            .resize({ width: 300 })
-            .png({ quality: 80, compressionLevel: 8 })
+            .resize({ width: 600, withoutEnlargement: true })
+            .png({ quality: 85, compressionLevel: 8 })
             .toBuffer();
         } catch (sharpError) {
           console.warn(`[Proposta] Falha ao comprimir imagem local com sharp:`, sharpError.message);
@@ -83,8 +83,8 @@ async function getAssinaturaBase64(url) {
     if (dataBuffer.length > 50 * 1024) {
       try {
         dataBuffer = await sharp(dataBuffer)
-          .resize({ width: 300 })
-          .png({ quality: 80, compressionLevel: 8 })
+          .resize({ width: 600, withoutEnlargement: true })
+          .png({ quality: 85, compressionLevel: 8 })
           .toBuffer();
       } catch (sharpError) {
         console.warn(`[Proposta] Falha ao comprimir imagem remota com sharp:`, sharpError.message);
