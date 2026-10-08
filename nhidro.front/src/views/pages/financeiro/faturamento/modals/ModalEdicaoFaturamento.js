@@ -71,7 +71,9 @@ const ModalEdicaoFaturamento = (props) => {
 
   useEffect(() => {
     if (modal) {
-      faturamento.DataEmissao = faturamento.DataEmissao ? moment(faturamento.DataEmissao).utc().format('YYYY-MM-DD') : moment().utc().format('YYYY-MM-DD')
+      faturamento.DataEmissao = faturamento.DataEmissao
+        ? moment(faturamento.DataEmissao).utc().format('YYYY-MM-DD')
+        : (faturamento.DadosFaturamento?.data_emissao ? moment(faturamento.DadosFaturamento.data_emissao).format('YYYY-MM-DD') : moment().utc().format('YYYY-MM-DD'))
       faturamento.ValorLiquido = faturamento.ValorLiquido || faturamento.ValorRateado
       if (!faturamento.DataVencimento) {
         let vencimento = new Date()

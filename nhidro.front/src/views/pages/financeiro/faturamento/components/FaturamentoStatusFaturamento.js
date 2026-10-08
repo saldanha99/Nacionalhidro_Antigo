@@ -239,10 +239,11 @@ const FaturamentoStatusFaturamento = (props) => {
   };
 
   const reprocessar = (data) => {
+    const motivoTexto = data.observacoes ? `\n\nMotivo informado pela prefeitura/Focus:\n${data.observacoes}` : "";
     MySwal.fire({
       title: `Reprocessamento Fiscal Fatura: Medição ${data.medicao} | Revisão ${data.medicao_revisao}`,
       icon: "warning",
-      text: "A Fatura voltará para o status 'Em aberto'. Deseja continuar?",
+      text: `A Fatura voltará para o status 'Em aberto'.${motivoTexto}\n\nDeseja continuar?`,
       showCancelButton: true,
       confirmButtonText: "Continuar",
       cancelButtonText: "Cancelar",
@@ -260,7 +261,7 @@ const FaturamentoStatusFaturamento = (props) => {
           model.id = data.id
           model.Nota = null
           model.DataEnvio = null
-          model.DataEmissao = null
+          model.DataEmissao = data.data_emissao ? data.data_emissao : null
           model.UrlArquivoNota = null
           model.MotivoCancelamento = null
           model.DataCancelamento = null
@@ -645,7 +646,10 @@ const FaturamentoStatusFaturamento = (props) => {
               accessor: "status",
               Cell: (row) => {
                 return (
-                  <span style={row.original.status === Enum_StatusFaturamento.Processando ? { backgroundColor: "#D66BFC" } : {}} className={row?.original?.status === Enum_StatusFaturamento.EmAberto
+                  <span
+                    title={row.original.status === Enum_StatusFaturamento.Falha && row.original.observacoes ? `Falha: ${row.original.observacoes}` : undefined}
+                    style={row.original.status === Enum_StatusFaturamento.Processando ? { backgroundColor: "#D66BFC" } : {}}
+                    className={row?.original?.status === Enum_StatusFaturamento.EmAberto
                     ? "bullet bullet-warning bullet-sm"
                     : row?.original?.status === Enum_StatusFaturamento.Enviado
                       ? "bullet bullet-success bullet-sm"
