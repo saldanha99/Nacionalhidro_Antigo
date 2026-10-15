@@ -363,4 +363,5 @@ module.exports = {
     montarDpsNacional,
     mensagemErroFocus,
     tipoRetencaoPisCofins,
+    digitos,
 };
