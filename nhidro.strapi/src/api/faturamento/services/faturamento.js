@@ -107,12 +107,13 @@ const aplicarRegrasAbrasf = (body) => {
         body.natureza_operacao = '2';
         body.tributacao_rps = 'E';
         body.servico.codigo_municipio = localPrestacao;
+        body.servico.iss_retido = true;
     } else {
         body.natureza_operacao = '1';
         body.tributacao_rps = 'T';
         body.servico.codigo_municipio = prestadorMun;
+        body.servico.iss_retido = body.servico.iss_retido === true || body.servico.iss_retido === 'true' || body.servico.iss_retido === 1 || body.servico.iss_retido === '1';
     }
-    body.servico.iss_retido = body.servico.iss_retido === true || body.servico.iss_retido === 'true' || body.servico.iss_retido === 1 || body.servico.iss_retido === '1';
     delete body.imovel;
     return body;
 };
@@ -311,7 +312,7 @@ const cancelar_nota = async (faturamento, cte) => {
             'user': faturamento.Empresa.FocusToken,
             'password': ''
         },
-        'body': JSON.stringify({'justificativa': 'Servico Nao Prestado'})
+        'body': JSON.stringify({'justificativa': faturamento.MotivoCancelamento || 'Cancelamento para correcao de dados fiscais'})
     };
     
     const req = await new Promise((resolve, reject) => {
@@ -367,10 +368,25 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         if (updatePayload.DadosFaturamento?.servico) {
             const df = updatePayload.DadosFaturamento;
             df.servico.codigo_municipio = nfseNacional.resolverLocalPrestacao(df);
+            const prestMun = nfseNacional.digitos(df.prestador?.codigo_municipio) || nfseNacional.CAMPINAS;
+            const fora = Boolean(df.servico.codigo_municipio) && df.servico.codigo_municipio !== prestMun;
+            if (fora) {
+                df.natureza_operacao = '2';
+                df.tributacao_rps = 'E';
+                df.servico.iss_retido = true;
+            }
         }
         if (updatePayload.DadosFaturamento?.imovel?.cep) {
             try {
                 await nfseNacional.alinharLocalPrestacaoPeloImovel(updatePayload.DadosFaturamento);
+                const df = updatePayload.DadosFaturamento;
+                const prestMun = nfseNacional.digitos(df.prestador?.codigo_municipio) || nfseNacional.CAMPINAS;
+                const fora = Boolean(df.servico?.codigo_municipio) && df.servico.codigo_municipio !== prestMun;
+                if (fora && df.servico) {
+                    df.natureza_operacao = '2';
+                    df.tributacao_rps = 'E';
+                    df.servico.iss_retido = true;
+                }
             } catch (cepErr) {
                 console.warn('[gerar] Erro ao alinhar local da prestacao pelo CEP:', cepErr.message);
             }

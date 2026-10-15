@@ -96,7 +96,7 @@ const ModalEmitirNFS = (props) => {
     model.natureza_operacao = isFora ? '2' : '1';
     model.tributacao_rps = isFora ? 'E' : 'T';
     model.servico.codigo_municipio = localPrestacao;
-    model.servico.iss_retido = isVerdadeiro(model.servico.iss_retido);
+    model.servico.iss_retido = isFora ? true : isVerdadeiro(model.servico.iss_retido);
     for (var property in model) {
       if (typeof model[property] === 'string') model[property] = model[property]?.trim()
     }

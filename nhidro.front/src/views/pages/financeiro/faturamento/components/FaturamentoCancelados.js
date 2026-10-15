@@ -64,6 +64,9 @@ const FaturamentoCancelados = (props) => {
         model.Revisao = data.revisao ? data.revisao + 1 : 1;
         model.Status = Enum_StatusFaturamento.EmAberto;
         model.StatusRecebimento = null;
+        model.FocusReferencia = null;
+        model.DadosWebHook = null;
+        model.Observacoes = null;
         props.alterarFaturamento(data.id, model);
       }
     });

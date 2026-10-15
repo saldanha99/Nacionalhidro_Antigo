@@ -98,7 +98,6 @@ const ModalEdicaoFaturamento = (props) => {
       else if (faturamento.TipoFatura === 'NF') {
         let dados = faturamento.DadosFaturamento ?? {
           servico: {
-            iss_retido: false,
             aliquota_pis: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 0.65,
             aliquota_cofins: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 3,
             aliquota_ir: faturamento.Empresa.RegimeTributario === Enum_RegimeTributario.Simples ? null : 1.5,
@@ -169,9 +168,15 @@ const ModalEdicaoFaturamento = (props) => {
         const localFora = String(dados.servico.codigo_municipio) !== prestadorMun;
         dados.natureza_operacao = localFora ? '2' : '1';
         dados.tributacao_rps = localFora ? 'E' : 'T';
-        dados.servico.iss_retido = (dados.servico.iss_retido === undefined || dados.servico.iss_retido === null || dados.servico.iss_retido === '')
-          ? localFora
-          : isVerdadeiro(dados.servico.iss_retido);
+        // Para serviços prestados fora do município do prestador (LC 116/2003, art. 3º, VII e art. 6º, § 2º, II - item 07.10),
+        // o imposto é devido no local da prestação e a retenção pelo tomador é obrigatória.
+        if (localFora) {
+          dados.servico.iss_retido = true;
+        } else if (dados.servico.iss_retido === undefined || dados.servico.iss_retido === null || dados.servico.iss_retido === '') {
+          dados.servico.iss_retido = false;
+        } else {
+          dados.servico.iss_retido = isVerdadeiro(dados.servico.iss_retido);
+        }
         dados.servico.codigo_cnae = faturamento.Empresa?.Cnae;
         dados.servico.item_lista_servico = '0710';
         // Padrão nacional (Campinas, desde 01/10/2026): códigos e endereço do imóvel

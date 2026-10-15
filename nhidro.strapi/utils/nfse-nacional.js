@@ -148,6 +148,11 @@ const alinharLocalPrestacaoPeloImovel = async (dados) => {
         if (!dados.servico) dados.servico = {};
         dados.servico.codigo_municipio = ibge;
     }
+    const prestMun = digitos(dados?.prestador?.codigo_municipio) || CAMPINAS;
+    if (ibge && ibge !== prestMun) {
+        if (!dados.servico) dados.servico = {};
+        dados.servico.iss_retido = true;
+    }
     return dados;
 };
 
@@ -270,7 +275,9 @@ const montarDpsNacional = (dados) => {
         // 1: Operação tributável
         tributacao_iss: '1',
         // 1: Não retido; 2: Retido pelo tomador
-        tipo_retencao_iss: verdadeiro(servico.iss_retido) ? '2' : '1',
+        // LC 116/2003, art. 3º, VII e art. 6º, § 2º, II (item 07.10): serviço prestado fora do
+        // município do prestador tem imposto devido no local e retenção obrigatória pelo tomador.
+        tipo_retencao_iss: (localPrestacao !== prestadorMun || verdadeiro(servico.iss_retido)) ? '2' : '1',
     };
 
     if (payload.descricao_servico.length > 1000) {
