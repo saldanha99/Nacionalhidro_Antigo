@@ -96,6 +96,19 @@ const prepararDadosNfse = (dadosFaturamento) => {
     return body;
 };
 
+// Retenção obrigatória (fora de Campinas ou tomador PJ no padrão nacional): marca o
+// ISS como retido e, se a tela mandou a fatura sem retenção, tira o ISS do líquido,
+// que precisa ser o mesmo da NFS-e.
+const garantirRetencaoIss = (updatePayload, retidoNaTela) => {
+    const df = updatePayload.DadosFaturamento;
+    if (!df?.servico || !nfseNacional.retencaoIssObrigatoria(df)) return;
+    df.servico.iss_retido = true;
+    const iss = Number(updatePayload.ValorIss) || 0;
+    if (!retidoNaTela && iss > 0 && updatePayload.ValorLiquido !== undefined && updatePayload.ValorLiquido !== null) {
+        updatePayload.ValorLiquido = Math.round((Number(updatePayload.ValorLiquido) - iss) * 100) / 100;
+    }
+};
+
 // Emissor antigo de Campinas (ABRASF). Só o Simples Nacional ainda usa, até 31/10/2026.
 const aplicarRegrasAbrasf = (body) => {
     // Local da prestação (LC 116/2003, art. 3º, VII / item 07.10): respeita a escolha
@@ -365,6 +378,7 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
 
         // Grava o local da prestação escolhido (ou o do tomador, se nada foi escolhido).
         // As regras de cada padrão (nacional ou ABRASF) são aplicadas na hora do envio.
+        const issRetidoNaTela = nfseNacional.verdadeiro(updatePayload.DadosFaturamento?.servico?.iss_retido);
         if (updatePayload.DadosFaturamento?.servico) {
             const df = updatePayload.DadosFaturamento;
             df.servico.codigo_municipio = nfseNacional.resolverLocalPrestacao(df);
@@ -373,7 +387,6 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
             if (fora) {
                 df.natureza_operacao = '2';
                 df.tributacao_rps = 'E';
-                df.servico.iss_retido = true;
             }
         }
         if (updatePayload.DadosFaturamento?.imovel?.cep) {
@@ -385,12 +398,13 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
                 if (fora && df.servico) {
                     df.natureza_operacao = '2';
                     df.tributacao_rps = 'E';
-                    df.servico.iss_retido = true;
                 }
             } catch (cepErr) {
                 console.warn('[gerar] Erro ao alinhar local da prestacao pelo CEP:', cepErr.message);
             }
         }
+        garantirRetencaoIss(updatePayload, issRetidoNaTela);
+        if (updatePayload.ValorLiquido !== undefined) faturamentoInput.ValorLiquido = updatePayload.ValorLiquido;
 
         // 2. Salva no banco com payload limpo (evita erro 500 do Strapi com lixo no faturamentoInput)
         try {

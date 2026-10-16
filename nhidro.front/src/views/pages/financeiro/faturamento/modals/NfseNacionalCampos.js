@@ -13,6 +13,26 @@ export const PADROES_NFSE_NACIONAL = {
 
 export const isVerdadeiro = (valor) => [true, 1, "1", "true"].includes(valor);
 
+// Até esta data o Simples Nacional ainda emite no padrão antigo de Campinas.
+const INICIO_NACIONAL_SIMPLES = "2026-11-01";
+
+/**
+ * Retenção do ISS pelo tomador obrigatória no item 07.10: fora do município do
+ * prestador o imposto é devido no local da prestação (LC 116/2003, art. 3º, VII) e,
+ * com tomador pessoa jurídica, ele é o responsável pela retenção (art. 6º, § 2º, II).
+ * No padrão nacional Campinas recusa a nota sem a retenção (erro L0011).
+ */
+export const retencaoIssObrigatoria = (dados, localPrestacao) => {
+  const prestMun = String(dados?.prestador?.codigo_municipio || "3509502").replace(/\D/g, "");
+  const local = String(localPrestacao || dados?.servico?.codigo_municipio || "").replace(/\D/g, "");
+  if (local && local !== prestMun) return true;
+  const tomadorPessoaJuridica = String(dados?.tomador?.cnpj || "").replace(/\D/g, "").length === 14;
+  const padraoNacional =
+    !isVerdadeiro(dados?.optante_simples_nacional) ||
+    new Date().toISOString().slice(0, 10) >= INICIO_NACIONAL_SIMPLES;
+  return tomadorPessoaJuridica && padraoNacional;
+};
+
 export const enderecoImovelDoTomador = (tomador) => ({
   cep: tomador?.endereco?.cep || "",
   logradouro: tomador?.endereco?.logradouro || "",
@@ -114,7 +134,7 @@ const NfseNacionalCampos = ({ dados, onChange }) => {
         ...servico,
         codigo_municipio: ibge,
         local_prestacao_manual: true,
-        iss_retido: fora,
+        iss_retido: retencaoIssObrigatoria(dados, ibge),
         natureza_operacao: fora ? "2" : "1",
         tributacao_rps: fora ? "E" : "T",
       };
@@ -177,7 +197,7 @@ const NfseNacionalCampos = ({ dados, onChange }) => {
         ...servico,
         codigo_municipio: imovelMun,
         local_prestacao_manual: true,
-        iss_retido: fora,
+        iss_retido: retencaoIssObrigatoria(dados, imovelMun),
         natureza_operacao: fora ? "2" : "1",
         tributacao_rps: fora ? "E" : "T",
       },

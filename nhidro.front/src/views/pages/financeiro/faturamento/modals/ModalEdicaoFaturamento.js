@@ -33,6 +33,7 @@ import NfseNacionalCampos, {
   imovelIncompleto,
   imovelCidadeIncompativel,
   isVerdadeiro,
+  retencaoIssObrigatoria,
 } from "./NfseNacionalCampos";
 
 const centavos = (valor) => Math.round((Number(valor || 0) + Number.EPSILON) * 100) / 100;
@@ -168,9 +169,8 @@ const ModalEdicaoFaturamento = (props) => {
         const localFora = String(dados.servico.codigo_municipio) !== prestadorMun;
         dados.natureza_operacao = localFora ? '2' : '1';
         dados.tributacao_rps = localFora ? 'E' : 'T';
-        // Para serviços prestados fora do município do prestador (LC 116/2003, art. 3º, VII e art. 6º, § 2º, II - item 07.10),
-        // o imposto é devido no local da prestação e a retenção pelo tomador é obrigatória.
-        if (localFora) {
+        // Retenção obrigatória fora do município do prestador ou com tomador PJ (item 07.10)
+        if (retencaoIssObrigatoria(dados)) {
           dados.servico.iss_retido = true;
         } else if (dados.servico.iss_retido === undefined || dados.servico.iss_retido === null || dados.servico.iss_retido === '') {
           dados.servico.iss_retido = false;
@@ -315,7 +315,7 @@ const ModalEdicaoFaturamento = (props) => {
     dadosFatura.natureza_operacao = isFora ? '2' : '1';
     dadosFatura.tributacao_rps = isFora ? 'E' : 'T';
     dadosFatura.servico.codigo_municipio = localPrestacao;
-    dadosFatura.servico.iss_retido = isVerdadeiro(dadosFatura.servico?.iss_retido);
+    dadosFatura.servico.iss_retido = retencaoIssObrigatoria(dadosFatura, localPrestacao) || isVerdadeiro(dadosFatura.servico?.iss_retido);
 
     for (var property in dadosFatura) {
       if (typeof dadosFatura[property] === 'string') dadosFatura[property] = dadosFatura[property]?.trimEnd()
@@ -1616,6 +1616,8 @@ const ModalEdicaoFaturamento = (props) => {
                             id="iss_retido"
                             name="iss_retido"
                             value={String(isVerdadeiro(dadosFatura.servico?.iss_retido))}
+                            disabled={retencaoIssObrigatoria(dadosFatura)}
+                            title={retencaoIssObrigatoria(dadosFatura) ? 'Retenção obrigatória: serviço fora de Campinas ou tomador pessoa jurídica' : undefined}
                             onChange={(e) => {
                               dadosFatura.servico.iss_retido = e.target.value === 'true'
                               setDadosFatura({ ...dadosFatura, servico: dadosFatura.servico })
@@ -1742,7 +1744,7 @@ const ModalEdicaoFaturamento = (props) => {
                               dadosFatura.servico.local_prestacao_manual = true;
                               dadosFatura.natureza_operacao = fora ? '2' : '1';
                               dadosFatura.tributacao_rps = fora ? 'E' : 'T';
-                              dadosFatura.servico.iss_retido = fora;
+                              dadosFatura.servico.iss_retido = retencaoIssObrigatoria(dadosFatura, cod);
                               setDadosFatura({ ...dadosFatura, servico: dadosFatura.servico });
                             }}
                           >

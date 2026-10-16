@@ -148,8 +148,7 @@ const alinharLocalPrestacaoPeloImovel = async (dados) => {
         if (!dados.servico) dados.servico = {};
         dados.servico.codigo_municipio = ibge;
     }
-    const prestMun = digitos(dados?.prestador?.codigo_municipio) || CAMPINAS;
-    if (ibge && ibge !== prestMun) {
+    if (retencaoIssObrigatoria(dados)) {
         if (!dados.servico) dados.servico = {};
         dados.servico.iss_retido = true;
     }
@@ -164,6 +163,22 @@ const usarPadraoNacional = (dados, dataReferencia = new Date()) => {
     if (!verdadeiro(dados?.optante_simples_nacional)) return true;
     const hoje = new Date(dataReferencia).toISOString().slice(0, 10);
     return hoje >= INICIO_NACIONAL_SIMPLES;
+};
+
+/**
+ * Retenção do ISS pelo tomador obrigatória no item 07.10:
+ * - serviço fora do município do prestador: imposto devido no local da prestação
+ *   (LC 116/2003, art. 3º, VII);
+ * - tomador pessoa jurídica: responsável pela retenção (LC 116/2003, art. 6º, § 2º, II).
+ *   No padrão nacional Campinas recusa a DPS sem a retenção com o erro L0011; em
+ *   16/10/2026 todas as notas com serviço em Campinas e ISS não retido voltaram assim
+ *   (5570, 5573, 5575), e as enviadas como retidas foram autorizadas (5513, 5516, 5542).
+ */
+const retencaoIssObrigatoria = (dados) => {
+    const prestadorMun = digitos(dados?.prestador?.codigo_municipio) || CAMPINAS;
+    if (resolverLocalPrestacao(dados) !== prestadorMun) return true;
+    const tomadorPessoaJuridica = digitos(dados?.tomador?.cnpj).length === 14;
+    return tomadorPessoaJuridica && usarPadraoNacional(dados);
 };
 
 /**
@@ -274,10 +289,8 @@ const montarDpsNacional = (dados) => {
 
         // 1: Operação tributável
         tributacao_iss: '1',
-        // 1: Não retido; 2: Retido pelo tomador
-        // LC 116/2003, art. 3º, VII e art. 6º, § 2º, II (item 07.10): serviço prestado fora do
-        // município do prestador tem imposto devido no local e retenção obrigatória pelo tomador.
-        tipo_retencao_iss: (localPrestacao !== prestadorMun || verdadeiro(servico.iss_retido)) ? '2' : '1',
+        // 1: Não retido; 2: Retido pelo tomador (obrigatório fora de Campinas e com tomador PJ)
+        tipo_retencao_iss: (retencaoIssObrigatoria(dados) || verdadeiro(servico.iss_retido)) ? '2' : '1',
     };
 
     if (payload.descricao_servico.length > 1000) {
@@ -360,6 +373,8 @@ module.exports = {
     consultarCep,
     alinharLocalPrestacaoPeloImovel,
     usarPadraoNacional,
+    retencaoIssObrigatoria,
+    verdadeiro,
     montarDpsNacional,
     mensagemErroFocus,
     tipoRetencaoPisCofins,

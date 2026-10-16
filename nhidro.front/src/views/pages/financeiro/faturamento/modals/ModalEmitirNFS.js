@@ -25,6 +25,7 @@ import NfseNacionalCampos, {
   imovelIncompleto,
   imovelCidadeIncompativel,
   isVerdadeiro,
+  retencaoIssObrigatoria,
 } from "./NfseNacionalCampos";
 import moment from "moment";
 
@@ -96,7 +97,7 @@ const ModalEmitirNFS = (props) => {
     model.natureza_operacao = isFora ? '2' : '1';
     model.tributacao_rps = isFora ? 'E' : 'T';
     model.servico.codigo_municipio = localPrestacao;
-    model.servico.iss_retido = isFora ? true : isVerdadeiro(model.servico.iss_retido);
+    model.servico.iss_retido = retencaoIssObrigatoria(model, localPrestacao) || isVerdadeiro(model.servico.iss_retido);
     for (var property in model) {
       if (typeof model[property] === 'string') model[property] = model[property]?.trim()
     }
@@ -482,7 +483,9 @@ const ModalEmitirNFS = (props) => {
                             type="select"
                             id="iss_retido"
                             name="iss_retido"
-                            value={String(isVerdadeiro(model.servico?.iss_retido))}
+                            value={String(isVerdadeiro(model.servico?.iss_retido) || retencaoIssObrigatoria(model))}
+                            disabled={retencaoIssObrigatoria(model)}
+                            title={retencaoIssObrigatoria(model) ? 'Retenção obrigatória: serviço fora de Campinas ou tomador pessoa jurídica' : undefined}
                             onChange={(e) => {
                               model.servico.iss_retido = e.target.value === 'true'
                               setModel({ ...model, servico: model.servico })
@@ -621,10 +624,9 @@ const ModalEmitirNFS = (props) => {
                             value={model.servico?.codigo_municipio || model.tomador?.endereco?.codigo_municipio || ''}
                             onChange={(e) => {
                               const cod = e.target.value;
-                              const fora = Boolean(cod) && cod !== String(model.prestador?.codigo_municipio || '3509502');
                               model.imovel = imovelAoTrocarLocal(model, cod);
                               model.servico.codigo_municipio = cod;
-                              model.servico.iss_retido = fora;
+                              model.servico.iss_retido = retencaoIssObrigatoria(model, cod);
                               setModel({ ...model, servico: model.servico });
                             }}
                           >
