@@ -96,6 +96,28 @@ const prepararDadosNfse = (dadosFaturamento) => {
     return body;
 };
 
+// A prefeitura de Campinas trunca o ISS no centavo, nos dois emissores e para qualquer
+// local da prestação: em 16/10/2026, nas 26 NFS-e autorizadas em que arredondar e
+// truncar davam valores diferentes, o ISS oficial era o truncado (2.048,99 x 5% = 102,44).
+// Conta em centavos inteiros para 9.778,00 x 5% não virar 488,89.
+const issTruncado = (valor, aliquota) =>
+    Math.floor(Math.round(Number(valor || 0) * 100) * Math.round(Number(aliquota || 0) * 100) / 10000) / 100;
+
+// Tela antiga ainda aberta no navegador manda o ISS arredondado; corrige a diferença de
+// centavo e, se o ISS já saía do líquido, leva a correção para o líquido também.
+const ajustarIssTruncado = (updatePayload, retidoNaTela) => {
+    const aliquota = updatePayload.DadosFaturamento?.servico?.aliquota;
+    if (updatePayload.ValorIss === undefined || updatePayload.ValorIss === null) return;
+    if (!(Number(updatePayload.ValorRateado) > 0) || !(Number(aliquota) > 0)) return;
+    const correto = issTruncado(updatePayload.ValorRateado, aliquota);
+    const diferenca = Math.round((Number(updatePayload.ValorIss) - correto) * 100) / 100;
+    if (diferenca === 0 || Math.abs(diferenca) > 0.01) return;
+    updatePayload.ValorIss = correto;
+    if (retidoNaTela && updatePayload.ValorLiquido !== undefined && updatePayload.ValorLiquido !== null) {
+        updatePayload.ValorLiquido = Math.round((Number(updatePayload.ValorLiquido) + diferenca) * 100) / 100;
+    }
+};
+
 // Retenção obrigatória (fora de Campinas ou tomador PJ no padrão nacional): marca o
 // ISS como retido e, se a tela mandou a fatura sem retenção, tira o ISS do líquido,
 // que precisa ser o mesmo da NFS-e.
@@ -403,7 +425,9 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
                 console.warn('[gerar] Erro ao alinhar local da prestacao pelo CEP:', cepErr.message);
             }
         }
+        ajustarIssTruncado(updatePayload, issRetidoNaTela);
         garantirRetencaoIss(updatePayload, issRetidoNaTela);
+        if (updatePayload.ValorIss !== undefined) faturamentoInput.ValorIss = updatePayload.ValorIss;
         if (updatePayload.ValorLiquido !== undefined) faturamentoInput.ValorLiquido = updatePayload.ValorLiquido;
 
         // 2. Salva no banco com payload limpo (evita erro 500 do Strapi com lixo no faturamentoInput)

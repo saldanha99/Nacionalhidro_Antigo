@@ -38,6 +38,12 @@ import NfseNacionalCampos, {
 
 const centavos = (valor) => Math.round((Number(valor || 0) + Number.EPSILON) * 100) / 100;
 
+// A prefeitura de Campinas trunca o ISS no centavo, nos dois emissores e para
+// qualquer local da prestação (ex.: 2.048,99 x 5% = 102,44). Conta em centavos
+// inteiros para 9.778,00 x 5% não virar 488,89.
+const issTruncado = (valor, aliquota) =>
+  Math.floor(Math.round(Number(valor || 0) * 100) * Math.round(Number(aliquota || 0) * 100) / 10000) / 100;
+
 const ModalEdicaoFaturamento = (props) => {
   const {
     modal,
@@ -322,7 +328,7 @@ const ModalEdicaoFaturamento = (props) => {
     }
 
     model.DadosFaturamento = dadosFatura
-    model.ValorIss = valorRetencao(dadosFatura.servico?.aliquota)
+    model.ValorIss = issTruncado(model.ValorRateado, dadosFatura.servico?.aliquota)
     // model.ValorIss = dadosFatura.servico.valor_iss
     model.ValorInss = dadosFatura.servico.valor_inss
     model.ValorIr = dadosFatura.servico.valor_ir
