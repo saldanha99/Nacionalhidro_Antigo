@@ -100,7 +100,7 @@ const ModalCliente = (props) => {
     quantityItensOnRow: 20
   } 
 
-  const mesPassado = new Date(new Date().setMonth(new Date().getMonth() - 3))
+  const mesPassado = new Date(new Date().setMonth(new Date().getMonth() - 12)) // histórico do cliente: último ano
   const mesQuevem = new Date(new Date().setMonth(new Date().getMonth() + 3))
 
   const TipoPessoa = {

@@ -47,7 +47,7 @@ const PropostasAbertas = (props) => {
     quantityItensOnRow: 10
   } 
 
-  const mesPassado = new Date(new Date().setMonth(new Date().getMonth() - 3))
+  const mesPassado = new Date(new Date().setMonth(new Date().getMonth() - 6)) // proposta em aberto costuma durar mais de 3 meses
   const mesQuevem = new Date(new Date().setMonth(new Date().getMonth() + 3))
 
   const { selectedTipo } = props

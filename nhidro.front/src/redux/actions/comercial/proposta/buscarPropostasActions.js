@@ -5,6 +5,14 @@ import { normalize, groupBy } from '../../../../utility/Utils'
 import moment from "moment"
 moment.locale("pt-br")
 
+// Proposta feita por outra pessoa para um cliente da carteira do vendedor também é dele
+const filtroCarteiraComercial = (user) => ({
+  $or: [
+    { Usuario: { id: user.id } },
+    { Cliente: { Vendedor: { id: user.id } } }
+  ]
+})
+
 export const buscarPropostas = (status, user, data1, data2, forceAll) => {
   const query = !user?.role?.name.includes('Comercial') || forceAll ? qs.stringify(
     {
@@ -34,11 +42,8 @@ export const buscarPropostas = (status, user, data1, data2, forceAll) => {
             {
               Status: status
             },
-            {
-              Usuario: {
-                id: user.id
-              }
-            },
+            // Comercial vê as propostas em que é o vendedor e as dos clientes da sua carteira
+            filtroCarteiraComercial(user),
             {
               DataProposta: {
                 $between: [data1, data2]
@@ -112,11 +117,8 @@ export const buscarPropostasPorCliente = (cliente, user, data1, data2) => {
                 id: cliente
               }
             },
-            {
-              Usuario: {
-                id: user.id
-              }
-            },
+            // Comercial vê as propostas em que é o vendedor e as dos clientes da sua carteira
+            filtroCarteiraComercial(user),
             {
               DataProposta: {
                 $between: [data1, data2]
