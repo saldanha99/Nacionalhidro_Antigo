@@ -94,6 +94,16 @@ module.exports = {
         }
       },
       {
+        // Download com o nome do cliente / ZIP por empresa e tipo (26/10/2026).
+        method: 'POST',
+        path: '/faturamentos/baixar-arquivos',
+        handler: 'faturamento.baixar_arquivos',
+        config: {
+          policies: [],
+          middlewares: []
+        }
+      },
+      {
         method: 'POST',
         path: '/faturamentos/consultar-nfse',
         handler: 'faturamento.consultar_nfse',

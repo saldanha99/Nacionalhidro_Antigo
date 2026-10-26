@@ -25,8 +25,10 @@ import {
   FiList,
   FiEye,
   FiCopy,
-  FiRefreshCw
+  FiRefreshCw,
+  FiDownload
 } from "react-icons/fi";
+import api from "@src/services/api";
 import { buscarFaturamentosRaw, buscarFaturamento, alterarFaturamento, gerarFaturamento, enviarFaturamento, cancelarFaturamento, clonarFaturamento, emitirNFS, consultarNFSe } from "../../../../../redux/actions/financeiro/faturamento";
 import { buscarContatosCliente } from "../../../../../redux/actions/administrador/cliente/listaClientesActions";
 import { buscarEmpresas } from "@src/redux/actions/administrador/empresa/buscarEmpresasActions"
@@ -90,6 +92,52 @@ const FaturamentoStatusFaturamento = (props) => {
       { transition: Slide, autoClose: 10000 }
     )
   }
+
+  /*
+   * DOWNLOAD COM O NOME DO CLIENTE (26/10/2026, Andréa): "renomeada pelo Tipo -
+   * Número - Cliente, sem o nosso nome". Uma fatura baixa o próprio arquivo; o
+   * botão do topo baixa a lista em ZIP, com uma pasta por empresa (HIDROSANEAMENTO,
+   * LOCACAO...) e, dentro, uma por tipo (NF, RL, CTE) — assim se sabe de qual
+   * empresa é sem estar no nome.
+   */
+  const [baixando, setBaixando] = useState(false);
+  const limparNomeArquivo = (texto) => String(texto || "")
+    .replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120).replace(/[. ]+$/, "");
+  const nomeDoArquivo = (f) => {
+    const ext = (/\.([a-z0-9]{2,5})$/i.exec(String(f.url_arquivo_nota || "").split("?")[0]) || [])[1] || "pdf";
+    return `${limparNomeArquivo(f.tipo_fatura || "FATURA").toUpperCase()} ${limparNomeArquivo(f.nota || `fatura ${f.id}`)} - ${limparNomeArquivo(f.cliente || "CLIENTE")}.${ext.toLowerCase()}`;
+  };
+  const avisoDownload = (titulo, texto, sucesso) => (sucesso ? toast.success : toast.error)(
+    <ToastContent messageTitle={titulo} messageBody={texto} color={sucesso ? "success" : "orange"} />,
+    { transition: Slide, autoClose: 10000 }
+  );
+  const baixarArquivos = (linhas, zip) => {
+    const comArquivo = (linhas || []).filter((l) => l && l.url_arquivo_nota);
+    if (!comArquivo.length) {
+      avisoDownload("Download", "Nenhuma fatura da lista tem arquivo para baixar.", false);
+      return;
+    }
+    const nome = zip
+      ? `faturas ${moment(intervaloData[0]).format("DD-MM-YYYY")} a ${moment(intervaloData[1] || intervaloData[0]).format("DD-MM-YYYY")}.zip`
+      : nomeDoArquivo(comArquivo[0]);
+    setBaixando(true);
+    api.postUntype("api/faturamentos/baixar-arquivos", { ids: comArquivo.map((l) => l.id), zip: Boolean(zip) }, "blob", (status, data, cabecalhos) => {
+      setBaixando(false);
+      if (status !== 200 || !(data instanceof Blob)) {
+        avisoDownload("Download", "Não foi possível baixar o arquivo. Tente de novo em instantes.", false);
+        return;
+      }
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = nome;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+      if (zip) avisoDownload("Download", `${comArquivo.length} arquivo(s) no ZIP, separados por empresa e tipo.`, true);
+    });
+  };
 
   const handlerFiltroData = (dateValue) => {
     setIntervaloData(dateValue);
@@ -485,6 +533,16 @@ const FaturamentoStatusFaturamento = (props) => {
                 marginTop: "20px",
               }}>
               <Button
+                color="secondary"
+                outline
+                disabled={baixando}
+                title="Baixa os arquivos das faturas da lista num ZIP, com pasta por empresa e por tipo"
+                onClick={() => baixarArquivos(filteredData, true)}
+                className="text-size-button mr-1">
+                <FiDownload style={{ marginRight: 6 }} />
+                {baixando ? "Baixando..." : "Baixar ZIP da lista"}
+              </Button>
+              <Button
                 color="primary"
                 onClick={() => {
                   // setContaAReceber({})
@@ -536,7 +594,7 @@ const FaturamentoStatusFaturamento = (props) => {
               Header: "AÇÕES",
               accessor: "id",
               filterable: false,
-              width: 160,
+              width: 190,
               Cell: (row) => {
                 return (
                   <div>
@@ -563,6 +621,14 @@ const FaturamentoStatusFaturamento = (props) => {
                         onClick={() => {
                           window.open(row.original.url_arquivo_nota, '_blank')
                         }}
+                      />
+                    }
+                    {row.original.url_arquivo_nota &&
+                      <FiDownload
+                        title={`Baixar como "${nomeDoArquivo(row.original)}"`}
+                        style={{ margin: "5px", cursor: "pointer" }}
+                        size={20}
+                        onClick={() => baixarArquivos([row.original], false)}
                       />
                     }
                     {row.original.status === Enum_StatusFaturamento.EmAberto &&

@@ -645,6 +645,46 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
 
         return resp[0]
     },
+    /**
+     * Arquivos das faturas para baixar (26/10/2026, Andréa): um só -> o próprio arquivo
+     * com o nome "TIPO NÚMERO - CLIENTE"; vários (ou zip=true) -> ZIP com
+     * EMPRESA/TIPO/arquivo. Arquivo que não baixar fica de fora e é contado.
+     */
+    baixar_arquivos: async (ids, zip = false) => {
+        const arquivos = require('../../../../utils/arquivos-fatura');
+        const lista = ids.map((id) => Number(id)).filter((id) => Number.isInteger(id)).join(',');
+        const query = `SELECT t0.id, t0.tipo_fatura, t0.nota, t0.url_arquivo_nota, c0.razao_social cliente, e0.id empresa_id, e0.descricao empresa
+        FROM faturamentos AS t0
+        LEFT JOIN faturamentos_cliente_links AS t1 ON t0.id = t1.faturamento_id
+        LEFT JOIN faturamentos_empresa_links AS t3 ON t0.id = t3.faturamento_id
+        LEFT JOIN clientes AS c0 ON t1.cliente_id = c0.id
+        LEFT JOIN empresas AS e0 ON t3.empresa_id = e0.id
+        WHERE t0.id IN (${lista}) AND t0.url_arquivo_nota IS NOT NULL AND t0.url_arquivo_nota <> ''
+        ORDER BY e0.id, t0.tipo_fatura, t0.nota`;
+        const linhas = (await strapi.db.connection.raw(query))[0] || [];
+        if (!linhas.length) return { erro: 'Nenhuma fatura escolhida tem arquivo.' };
+        const tipoDe = (nome) => (nome.toLowerCase().endsWith('.html') ? 'text/html; charset=utf-8' : 'application/pdf');
+        if (linhas.length === 1 && !zip) {
+            const f = linhas[0];
+            const nome = arquivos.nomeDoArquivo(f);
+            return { nome, tipo: tipoDe(nome), arquivo: await arquivos.baixar(f.url_arquivo_nota) };
+        }
+        const usados = new Set();
+        const conteudo = [];
+        let faltando = 0;
+        for (const f of linhas) {
+            try {
+                const dados = await arquivos.baixar(f.url_arquivo_nota);
+                const caminho = `${arquivos.pastaDaEmpresa(f.empresa_id, f.empresa)}/${arquivos.limparNome(f.tipo_fatura || 'OUTROS').toUpperCase()}/${arquivos.nomeDoArquivo(f)}`;
+                conteudo.push({ nome: arquivos.semRepetir(caminho, usados), dados });
+            } catch (e) {
+                faltando += 1;
+                console.log('baixar_arquivos: falhou', f.id, e.message);
+            }
+        }
+        if (!conteudo.length) return { erro: 'Não foi possível baixar os arquivos das faturas.' };
+        return { nome: `faturas-${moment().format('YYYY-MM-DD-HHmm')}.zip`, tipo: 'application/zip', arquivo: arquivos.montarZip(conteudo), faltando };
+    },
     buscar_por_cliente: async (params) => {
         const query = `SELECT t0.id, t0.status, t0.revisao, m0.codigo medicao, m0.revisao medicao_revisao, m0.data_cobranca, m0.data_aprovacao, t0.nota, t0.tipo_fatura, e0.descricao empresa, c0.razao_social cliente, c0.id cliente_id, 
         COALESCE(c1.nome, c2.nome) contato, t0.data_envio, t0.valor_total, t0.valor_rateado, t0.data_emissao, t0.data_cancelamento, t0.motivo_cancelamento, t0.created_at, t0.url_arquivo_nota

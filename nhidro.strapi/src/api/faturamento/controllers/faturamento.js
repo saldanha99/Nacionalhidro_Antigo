@@ -43,6 +43,22 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
             data: resp
         };
     },
+    /**
+     * Baixa o arquivo da fatura com o nome "NF 8336 - CLIENTE.pdf"; com mais de uma,
+     * um ZIP com pasta por empresa e por tipo (pedido da Andréa, 26/10/2026).
+     */
+    baixar_arquivos: async (ctx, next) => {
+        const body = ctx.request.body?.data || ctx.request.body || {};
+        const ids = (Array.isArray(body.ids) ? body.ids : []).map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 400);
+        if (!ids.length) return ctx.badRequest('Nenhuma fatura escolhida.');
+        const resp = await strapi.services["api::faturamento.faturamento"].baixar_arquivos(ids, Boolean(body.zip));
+        if (!resp.arquivo) return ctx.badRequest(resp.erro || 'Nenhuma fatura com arquivo.');
+        ctx.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(resp.nome)}`);
+        ctx.set('Access-Control-Expose-Headers', 'Content-Disposition, X-Arquivos-Faltando');
+        if (resp.faltando) ctx.set('X-Arquivos-Faltando', String(resp.faltando));
+        ctx.type = resp.tipo;
+        ctx.body = resp.arquivo;
+    },
     buscar: async (ctx, next) => {
         const data = ctx.request.body?.params || ctx.request.body;
         const faturamentos = await strapi.services["api::faturamento.faturamento"].buscar(data);
