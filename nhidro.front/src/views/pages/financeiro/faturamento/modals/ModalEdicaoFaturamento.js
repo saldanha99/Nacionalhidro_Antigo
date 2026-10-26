@@ -35,6 +35,7 @@ import NfseNacionalCampos, {
   isVerdadeiro,
   retencaoIssObrigatoria,
 } from "./NfseNacionalCampos";
+import { NotasFaturamentoPainel } from "../../../components/NotasFaturamentoCliente"
 
 const centavos = (valor) => Math.round((Number(valor || 0) + Number.EPSILON) * 100) / 100;
 
@@ -362,6 +363,7 @@ const ModalEdicaoFaturamento = (props) => {
             </h4>
           </ModalHeader>
           <ModalBody>
+            <NotasFaturamentoPainel cliente={model?.Cliente} />
             <Row>
               <Col md="12">
                 <div

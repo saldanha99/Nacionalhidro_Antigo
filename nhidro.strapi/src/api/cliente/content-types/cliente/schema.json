@@ -166,6 +166,38 @@
       "relation": "oneToMany",
       "target": "api::cliente-documento.cliente-documento",
       "mappedBy": "Cliente"
+    },
+    "FatPedidoCompra": {
+      "type": "enumeration",
+      "enum": [
+        "OBRIGATORIO",
+        "DISPENSADO",
+        "A_CONFIRMAR"
+      ]
+    },
+    "FatFechamento": {
+      "type": "text"
+    },
+    "FatEnvioMedicao": {
+      "type": "text"
+    },
+    "FatEnvioFaturas": {
+      "type": "text"
+    },
+    "FatDocumentos": {
+      "type": "text"
+    },
+    "FatParticularidades": {
+      "type": "text"
+    },
+    "FatResponsaveis": {
+      "type": "text"
+    },
+    "FatNotasAtualizadasEm": {
+      "type": "datetime"
+    },
+    "FatNotasAtualizadasPor": {
+      "type": "string"
     }
   }
 }

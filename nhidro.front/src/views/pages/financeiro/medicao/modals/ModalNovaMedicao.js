@@ -27,6 +27,7 @@ import { connect } from "react-redux";
 import { Enum_StatusMedicao, Enum_StatusPrecificacao } from "../../../../../utility/enum/Enums";
 import { FiPlus, FiMinus } from "react-icons/fi";
 import moment from "moment";
+import { NotasFaturamentoPainel } from "../../../components/NotasFaturamentoCliente"
 
 const ModalNovaMedicao = (props) => {
   const { modal, handleClose, clientes, empresas, handlePrecificar, criarMedicao, vendedores } = props;
@@ -208,6 +209,7 @@ const ModalNovaMedicao = (props) => {
             </h4>
           </ModalHeader>
           <ModalBody>
+            <NotasFaturamentoPainel cliente={search?.Cliente} />
             <Row>
               <Col md="2" className="mt-1">
                 <FormGroup>

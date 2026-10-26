@@ -21,6 +21,7 @@ import "@styles/base/plugins/forms/pickers/form-flat-pickr.scss";
 import { FiArrowLeft, FiEdit, FiSave, FiSend, FiXCircle } from "react-icons/fi";
 import NumberFormat from "react-number-format";
 import { Enum_StatusMedicao, Enum_StatusPrecificacao } from "../../../../../utility/enum/Enums";
+import { NotasFaturamentoPainel } from "../../../components/NotasFaturamentoCliente"
 
 const ModalEdicaoMedicao = (props) => {
   const { modalEdicao, medicao, ordens, vendedores, handleClose, handlePrecificar, alterarMedicao, alterarStatusMedicao } = props;
@@ -147,6 +148,7 @@ const ModalEdicaoMedicao = (props) => {
             </h4>
           </ModalHeader>
           <ModalBody>
+            <NotasFaturamentoPainel cliente={model?.Cliente} />
             <Row>
               <Col md="12">
                 <div

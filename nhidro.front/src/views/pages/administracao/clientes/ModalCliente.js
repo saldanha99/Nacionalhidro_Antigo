@@ -51,6 +51,7 @@ import { FiEye } from "react-icons/fi"
 import SkeletonDataTable from "../../components/SkeletonDataTable"
 import Alert from "reactstrap/lib/Alert"
 import HistoricoContato from "./abas/HistoricoContato"
+import { NotasFaturamentoForm, notasFaturamentoMudaram } from "../../components/NotasFaturamentoCliente"
 import {ToastContent } from "@utils"
 import { toast, Slide } from "react-toastify"
 import AbaMedicoes from "./abas/AbaMedicoes"
@@ -748,6 +749,12 @@ const ModalCliente = (props) => {
     data.DiaBaseQuinzenalFinal = ehTipoFaturamentoQuinzenal() ? modelCliente.DiaBaseQuinzenalFinal : null
     data.DiaBaseSemanal = ehTipoFaturamentoSemanal() ? modelCliente.DiaBaseSemanal : null
     data.PorcentagemRL = modelCliente.PorcentagemRL / 100
+    // Bloco de notas do faturamento: quem mexeu por último fica registrado
+    if (!data.FatPedidoCompra) data.FatPedidoCompra = null
+    if (notasFaturamentoMudaram(props.data, data)) {
+      data.FatNotasAtualizadasEm = new Date().toISOString()
+      data.FatNotasAtualizadasPor = user?.username || null
+    }
     if (modelCliente?.id) {
       data.id = modelCliente.id
       // data.SenhaPortal = encryptedStringPassword
@@ -1728,6 +1735,10 @@ const ModalCliente = (props) => {
                   </FormGroup>
                 </Col>
               </Row>
+              <NotasFaturamentoForm
+                cliente={modelCliente}
+                onChange={(campo, valor) => setModelCliente({ ...modelCliente, [campo]: valor })}
+              />
               <Row style={{ background: '#D5DBE3', padding: '2px', margin: '0 10px 0 10px' }}>
                 <Col md="12" className="mt-1" >
                   <span
