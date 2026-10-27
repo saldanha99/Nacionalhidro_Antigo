@@ -104,6 +104,26 @@ module.exports = {
         }
       },
       {
+        // PDF da nota cancelada, sem ir ao site da prefeitura (27/10/2026).
+        method: 'POST',
+        path: '/faturamentos/nota-cancelada',
+        handler: 'faturamento.nota_cancelada',
+        config: {
+          policies: [],
+          middlewares: []
+        }
+      },
+      {
+        // Pré-visualização da NFS-e antes de gerar (27/10/2026).
+        method: 'POST',
+        path: '/faturamentos/previa-nfse',
+        handler: 'faturamento.previa_nfse',
+        config: {
+          policies: [],
+          middlewares: []
+        }
+      },
+      {
         method: 'POST',
         path: '/faturamentos/consultar-nfse',
         handler: 'faturamento.consultar_nfse',

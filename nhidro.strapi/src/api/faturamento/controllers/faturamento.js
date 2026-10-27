@@ -59,6 +59,24 @@ module.exports = createCoreController('api::faturamento.faturamento', ({ strapi 
         ctx.type = resp.tipo;
         ctx.body = resp.arquivo;
     },
+    /** PDF da nota cancelada, carimbado com a data e o motivo (27/10/2026, Andréa). */
+    nota_cancelada: async (ctx, next) => {
+        const body = ctx.request.body?.data || ctx.request.body || {};
+        const id = Number(body.id);
+        if (!Number.isInteger(id) || id <= 0) return ctx.badRequest('Fatura não informada.');
+        const resp = await strapi.services["api::faturamento.faturamento"].nota_cancelada(id);
+        if (!resp.arquivo) return ctx.badRequest(resp.erro || 'Nota cancelada indisponível.');
+        ctx.set('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(resp.nome)}`);
+        ctx.set('Access-Control-Expose-Headers', 'Content-Disposition');
+        ctx.type = resp.tipo;
+        ctx.body = resp.arquivo;
+    },
+    /** Pré-visualização da NFS-e: mesmas regras do gerar, sem gravar nem enviar. */
+    previa_nfse: async (ctx, next) => {
+        const data = ctx.request.body?.data || ctx.request.body;
+        const resp = await strapi.services["api::faturamento.faturamento"].previa_nfse(data);
+        return { error: !resp.success, data: resp };
+    },
     buscar: async (ctx, next) => {
         const data = ctx.request.body?.params || ctx.request.body;
         const faturamentos = await strapi.services["api::faturamento.faturamento"].buscar(data);

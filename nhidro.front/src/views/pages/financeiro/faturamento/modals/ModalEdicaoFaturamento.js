@@ -36,6 +36,8 @@ import NfseNacionalCampos, {
   retencaoIssObrigatoria,
 } from "./NfseNacionalCampos";
 import { NotasFaturamentoPainel } from "../../../components/NotasFaturamentoCliente"
+import PreviaNotaFiscal from "./PreviaNotaFiscal"
+import api from "@src/services/api"
 
 const centavos = (valor) => Math.round((Number(valor || 0) + Number.EPSILON) * 100) / 100;
 
@@ -76,6 +78,18 @@ const ModalEdicaoFaturamento = (props) => {
   const [dadosFatura, setDadosFatura] = useState({});
   const [aba, setAba] = useState(1);
   const [abaDocumento, setAbaDocumento] = useState(1);
+  // Pré-visualização da NF antes de gerar (27/10/2026, Andréa)
+  const [previa, setPrevia] = useState(null);
+
+  const abrirPrevia = (modelPrevia) => {
+    setPrevia({ carregando: true, model: modelPrevia });
+    api.post("/api/faturamentos/previa-nfse", modelPrevia, (status, data) => {
+      const resposta = status === 200 && data?.data
+        ? data.data
+        : { success: false, erro: "Não foi possível montar a prévia agora. Tente de novo em instantes." };
+      setPrevia({ model: modelPrevia, resposta });
+    });
+  };
 
   useEffect(() => {
     if (modal) {
@@ -339,6 +353,7 @@ const ModalEdicaoFaturamento = (props) => {
     // Mesmo líquido da NFS-e: o ISS só sai do valor quando é retido pelo tomador.
     const issDescontado = dadosFatura.servico.iss_retido ? (model.ValorIss || 0) : 0
     model.ValorLiquido = centavos(model.ValorRateado - issDescontado - (model.ValorInss || 0) - (model.ValorIr || 0) - (model.ValorPis || 0) - (model.ValorCofins || 0) - (model.ValorCsll || 0))
+    if (salvar === 'previa') return abrirPrevia(model)
     salvar ? save(model) : gerar(model)
   }
 
@@ -2136,6 +2151,17 @@ const ModalEdicaoFaturamento = (props) => {
                     }}>
                     Salvar
                   </Button.Ripple>
+                  {model.TipoFatura === 'NF' &&
+                    <Button.Ripple
+                      className="mr-1 mb-1"
+                      color="info"
+                      outline
+                      disabled={isButtonDisabled}
+                      title="Mostra como a nota vai sair, sem enviar à prefeitura"
+                      onClick={() => salvarNF('previa')}>
+                      Pré-visualizar nota
+                    </Button.Ripple>
+                  }
                   <Button.Ripple
                     className="mr-1 mb-1"
                     color="primary"
@@ -2152,6 +2178,14 @@ const ModalEdicaoFaturamento = (props) => {
             </Row>
           </ModalBody>
         </Modal>
+        <PreviaNotaFiscal
+          previa={previa}
+          empresa={model?.Empresa}
+          banco={model?.EmpresaBanco}
+          onFechar={() => setPrevia(null)}
+          onSalvar={() => { const m = previa.model; setPrevia(null); save(m) }}
+          onGerar={() => { const m = previa.model; setPrevia(null); gerar(m) }}
+        />
       </span>
     </div>
   );

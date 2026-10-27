@@ -366,69 +366,82 @@ const cancelar_nota = async (faturamento, cte) => {
     return retorno
 }
 
+/**
+ * Dados editáveis da tela já com as regras fiscais aplicadas (local da prestação pelo
+ * imóvel, ISS truncado, retenção obrigatória). Usado pelo "Gerar Fatura" e pela
+ * pré-visualização, para a prévia mostrar exatamente o que vai para a prefeitura.
+ */
+const EDITABLE_FIELDS = [
+    'DadosFaturamento', 'DataEmissao', 'DataVencimento', 'ValorIss', 'ValorInss',
+    'ValorIr', 'ValorPis', 'ValorCofins', 'ValorCsll', 'ValorLiquido', 'Descricao',
+    'DadosComplementares', 'NumeroPedido', 'Observacoes', 'ValorRateado'
+];
+
+const montarPayloadEdicao = async (faturamentoInput) => {
+    // Payload limpo apenas com campos escalares para salvar os dados editáveis
+    const updatePayload = {};
+    EDITABLE_FIELDS.forEach(field => {
+        let val = faturamentoInput[field];
+        if (val !== undefined) {
+            // Se for campo decimal e vier vazio, anula para não estourar 500 no Strapi
+            if (['ValorIss', 'ValorInss', 'ValorIr', 'ValorPis', 'ValorCofins', 'ValorCsll', 'ValorLiquido', 'ValorRateado'].includes(field)) {
+                if (val === "" || val === null) val = null;
+                else val = Number(val) || 0;
+            }
+            // Se for data e vier vazia, anular
+            if (['DataEmissao', 'DataVencimento'].includes(field)) {
+                if (val === "") val = null;
+            }
+            updatePayload[field] = val;
+        }
+    });
+    if (faturamentoInput.EmpresaBanco?.id) {
+        updatePayload.EmpresaBanco = faturamentoInput.EmpresaBanco.id;
+    }
+
+    // Grava o local da prestação escolhido (ou o do tomador, se nada foi escolhido).
+    // As regras de cada padrão (nacional ou ABRASF) são aplicadas na hora do envio.
+    const issRetidoNaTela = nfseNacional.verdadeiro(updatePayload.DadosFaturamento?.servico?.iss_retido);
+    if (updatePayload.DadosFaturamento?.servico) {
+        const df = updatePayload.DadosFaturamento;
+        df.servico.codigo_municipio = nfseNacional.resolverLocalPrestacao(df);
+        const prestMun = nfseNacional.digitos(df.prestador?.codigo_municipio) || nfseNacional.CAMPINAS;
+        const fora = Boolean(df.servico.codigo_municipio) && df.servico.codigo_municipio !== prestMun;
+        if (fora) {
+            df.natureza_operacao = '2';
+            df.tributacao_rps = 'E';
+        }
+    }
+    if (updatePayload.DadosFaturamento?.imovel?.cep) {
+        try {
+            await nfseNacional.alinharLocalPrestacaoPeloImovel(updatePayload.DadosFaturamento);
+            const df = updatePayload.DadosFaturamento;
+            const prestMun = nfseNacional.digitos(df.prestador?.codigo_municipio) || nfseNacional.CAMPINAS;
+            const fora = Boolean(df.servico?.codigo_municipio) && df.servico.codigo_municipio !== prestMun;
+            if (fora && df.servico) {
+                df.natureza_operacao = '2';
+                df.tributacao_rps = 'E';
+            }
+        } catch (cepErr) {
+            console.warn('[gerar] Erro ao alinhar local da prestacao pelo CEP:', cepErr.message);
+        }
+    }
+    ajustarIssTruncado(updatePayload, issRetidoNaTela);
+    garantirRetencaoIss(updatePayload, issRetidoNaTela);
+    if (updatePayload.ValorIss !== undefined) faturamentoInput.ValorIss = updatePayload.ValorIss;
+    if (updatePayload.ValorLiquido !== undefined) faturamentoInput.ValorLiquido = updatePayload.ValorLiquido;
+    return updatePayload;
+};
+
 const { createCoreService } = require('@strapi/strapi').factories;
 
 module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) => ({
     gerar: async (faturamentoInput) => {
         let retorno = {};
 
-        // 1. Prepara payload limpo apenas com campos escalares para salvar os dados editáveis
-        const editableFields = [
-            'DadosFaturamento', 'DataEmissao', 'DataVencimento', 'ValorIss', 'ValorInss', 
-            'ValorIr', 'ValorPis', 'ValorCofins', 'ValorCsll', 'ValorLiquido', 'Descricao', 
-            'DadosComplementares', 'NumeroPedido', 'Observacoes', 'ValorRateado'
-        ];
-        const updatePayload = {};
-        editableFields.forEach(field => {
-            let val = faturamentoInput[field];
-            if (val !== undefined) {
-                // Se for campo decimal e vier vazio, anula para não estourar 500 no Strapi
-                if (['ValorIss', 'ValorInss', 'ValorIr', 'ValorPis', 'ValorCofins', 'ValorCsll', 'ValorLiquido', 'ValorRateado'].includes(field)) {
-                    if (val === "" || val === null) val = null;
-                    else val = Number(val) || 0;
-                }
-                // Se for data e vier vazia, anular
-                if (['DataEmissao', 'DataVencimento'].includes(field)) {
-                    if (val === "") val = null;
-                }
-                updatePayload[field] = val;
-            }
-        });
-        if (faturamentoInput.EmpresaBanco?.id) {
-            updatePayload.EmpresaBanco = faturamentoInput.EmpresaBanco.id;
-        }
-
-        // Grava o local da prestação escolhido (ou o do tomador, se nada foi escolhido).
-        // As regras de cada padrão (nacional ou ABRASF) são aplicadas na hora do envio.
-        const issRetidoNaTela = nfseNacional.verdadeiro(updatePayload.DadosFaturamento?.servico?.iss_retido);
-        if (updatePayload.DadosFaturamento?.servico) {
-            const df = updatePayload.DadosFaturamento;
-            df.servico.codigo_municipio = nfseNacional.resolverLocalPrestacao(df);
-            const prestMun = nfseNacional.digitos(df.prestador?.codigo_municipio) || nfseNacional.CAMPINAS;
-            const fora = Boolean(df.servico.codigo_municipio) && df.servico.codigo_municipio !== prestMun;
-            if (fora) {
-                df.natureza_operacao = '2';
-                df.tributacao_rps = 'E';
-            }
-        }
-        if (updatePayload.DadosFaturamento?.imovel?.cep) {
-            try {
-                await nfseNacional.alinharLocalPrestacaoPeloImovel(updatePayload.DadosFaturamento);
-                const df = updatePayload.DadosFaturamento;
-                const prestMun = nfseNacional.digitos(df.prestador?.codigo_municipio) || nfseNacional.CAMPINAS;
-                const fora = Boolean(df.servico?.codigo_municipio) && df.servico.codigo_municipio !== prestMun;
-                if (fora && df.servico) {
-                    df.natureza_operacao = '2';
-                    df.tributacao_rps = 'E';
-                }
-            } catch (cepErr) {
-                console.warn('[gerar] Erro ao alinhar local da prestacao pelo CEP:', cepErr.message);
-            }
-        }
-        ajustarIssTruncado(updatePayload, issRetidoNaTela);
-        garantirRetencaoIss(updatePayload, issRetidoNaTela);
-        if (updatePayload.ValorIss !== undefined) faturamentoInput.ValorIss = updatePayload.ValorIss;
-        if (updatePayload.ValorLiquido !== undefined) faturamentoInput.ValorLiquido = updatePayload.ValorLiquido;
+        // 1. Prepara payload limpo e aplica as regras fiscais (mesmo caminho da prévia)
+        const updatePayload = await montarPayloadEdicao(faturamentoInput);
+        const editableFields = EDITABLE_FIELDS;
 
         // 2. Salva no banco com payload limpo (evita erro 500 do Strapi com lixo no faturamentoInput)
         try {
@@ -684,6 +697,118 @@ module.exports = createCoreService('api::faturamento.faturamento', ({ strapi }) 
         }
         if (!conteudo.length) return { erro: 'Não foi possível baixar os arquivos das faturas.' };
         return { nome: `faturas-${moment().format('YYYY-MM-DD-HHmm')}.zip`, tipo: 'application/zip', arquivo: arquivos.montarZip(conteudo), faltando };
+    },
+    /**
+     * PDF da nota cancelada para consulta (27/10/2026, Andréa): sem precisar entrar no
+     * site da prefeitura. Ver utils/nota-cancelada.js.
+     */
+    nota_cancelada: async (id) => {
+        const arquivos = require('../../../../utils/arquivos-fatura');
+        const carimbo = require('../../../../utils/nota-cancelada');
+        const query = `SELECT t0.id, t0.status, t0.tipo_fatura, t0.nota, t0.url_arquivo_nota, t0.focus_referencia,
+        t0.motivo_cancelamento, t0.data_cancelamento, c0.razao_social cliente, e0.focus_token
+        FROM faturamentos AS t0
+        LEFT JOIN faturamentos_cliente_links AS t1 ON t0.id = t1.faturamento_id
+        LEFT JOIN faturamentos_empresa_links AS t3 ON t0.id = t3.faturamento_id
+        LEFT JOIN clientes AS c0 ON t1.cliente_id = c0.id
+        LEFT JOIN empresas AS e0 ON t3.empresa_id = e0.id
+        WHERE t0.id = ?`;
+        const [f] = (await strapi.db.connection.raw(query, [Number(id)]))[0] || [];
+        if (!f) return { erro: 'Fatura não encontrada.' };
+        if (Number(f.status) !== Enum_StatusFaturamento.Cancelado) return { erro: 'Esta fatura não está cancelada.' };
+
+        const nome = arquivos.nomeDoArquivo({ ...f, tipo_fatura: `${f.tipo_fatura || 'FATURA'} CANCELADA` }).replace(/\.[a-z0-9]+$/i, '.pdf');
+        const consultadoEm = moment().utcOffset(-180).format('DD/MM/YYYY HH:mm');
+        const dataSistema = f.data_cancelamento ? moment(f.data_cancelamento).utcOffset(-180).format('DD/MM/YYYY HH:mm') : '';
+
+        // NF com referência na Focus: consulta a situação na prefeitura.
+        let focus = null;
+        if (f.tipo_fatura === 'NF' && f.focus_referencia && f.focus_token) {
+            try {
+                const api = await buscarApiFocus();
+                focus = await focusRequest({
+                    method: 'GET',
+                    url: urlNotaFocus(api, { FocusReferencia: f.focus_referencia }, false),
+                    auth: { user: f.focus_token, password: '' },
+                });
+            } catch (e) {
+                console.log('[nota_cancelada] Focus indisponível', f.id, e.message);
+            }
+        }
+
+        const nacional = nfseNacional.isReferenciaNacional(f.focus_referencia);
+        const urlPdf = focus?.url_danfse || (String(f.url_arquivo_nota || '').toLowerCase().endsWith('.html') ? '' : f.url_arquivo_nota);
+        if (!urlPdf) return { erro: 'Esta fatura foi cancelada antes de gerar a nota; não há documento para mostrar.' };
+        let pdf;
+        try {
+            pdf = await arquivos.baixar(urlPdf);
+        } catch (e) {
+            return { erro: 'Não foi possível baixar o PDF da nota agora. Tente de novo em instantes.' };
+        }
+
+        // Emissor antigo de Campinas cancelado na prefeitura: o DANFSe da Focus já vem
+        // com "CANCELADA" e a data; vai como está.
+        if (focus?.status === 'cancelado' && !nacional) return { nome, tipo: 'application/pdf', arquivo: pdf };
+
+        let cancelamento = {};
+        if (focus?.status === 'cancelado' && focus.caminho_xml_cancelamento) {
+            try {
+                const xml = await arquivos.baixar(new URL(focus.url_danfse).origin + focus.caminho_xml_cancelamento);
+                cancelamento = carimbo.lerCancelamento(xml.toString('utf8'));
+            } catch (e) {
+                console.log('[nota_cancelada] XML de cancelamento indisponível', f.id, e.message);
+            }
+        }
+        const texto = carimbo.textoDoCarimbo({
+            statusFocus: focus?.status,
+            nacional,
+            cancelamento,
+            motivoSistema: f.motivo_cancelamento,
+            dataSistema,
+            numero: f.nota,
+            consultadoEm,
+        });
+        if (f.tipo_fatura !== 'NF') {
+            // RL e CT-e: só o que o sistema registrou.
+            texto.titulo = `${f.tipo_fatura || 'FATURA'} CANCELADA${dataSistema ? ` EM ${dataSistema}` : ''}`;
+            texto.marca = 'CANCELADA';
+            texto.linhas = [f.motivo_cancelamento ? `Motivo: ${f.motivo_cancelamento}` : '', `Cópia para consulta, gerada pelo sistema em ${consultadoEm}.`].filter(Boolean);
+        }
+        try {
+            return { nome, tipo: 'application/pdf', arquivo: await carimbo.carimbar(pdf, texto) };
+        } catch (e) {
+            console.log('[nota_cancelada] não carimbou, vai o original', f.id, e.message);
+            return { nome, tipo: 'application/pdf', arquivo: pdf };
+        }
+    },
+    /**
+     * Pré-visualização da NFS-e antes de gerar (27/10/2026, Andréa): roda as mesmas
+     * regras do "Gerar Fatura" sem gravar nada nem enviar à prefeitura, e devolve o
+     * que seria enviado.
+     */
+    previa_nfse: async (faturamentoInput) => {
+        if (faturamentoInput?.TipoFatura !== 'NF') return { success: false, erro: 'A pré-visualização é só para nota fiscal de serviço (NF).' };
+        const entrada = JSON.parse(JSON.stringify(faturamentoInput));
+        const updatePayload = await montarPayloadEdicao(entrada);
+        if (!updatePayload.DadosFaturamento) return { success: false, erro: 'Preencha os dados da nota antes de pré-visualizar.' };
+        const dados = prepararDadosNfse(updatePayload.DadosFaturamento);
+        const nacional = nfseNacional.usarPadraoNacional(dados);
+        let dps;
+        try {
+            if (nacional) {
+                await nfseNacional.alinharLocalPrestacaoPeloImovel(dados);
+                dps = nfseNacional.montarDpsNacional(dados);
+            } else {
+                dps = aplicarRegrasAbrasf(JSON.parse(JSON.stringify(dados)));
+            }
+        } catch (e) {
+            return { success: false, erro: e.message };
+        }
+        const valores = {};
+        ['ValorRateado', 'ValorIss', 'ValorInss', 'ValorIr', 'ValorPis', 'ValorCofins', 'ValorCsll', 'ValorLiquido', 'DataEmissao', 'DataVencimento']
+            .forEach((campo) => { valores[campo] = updatePayload[campo] ?? null; });
+        const issRetido = nacional ? dps.tipo_retencao_iss === '2' : nfseNacional.verdadeiro(dps.servico?.iss_retido);
+        return { success: true, padrao: nacional ? 'nacional' : 'abrasf', issRetido, dps, dados, valores };
     },
     buscar_por_cliente: async (params) => {
         const query = `SELECT t0.id, t0.status, t0.revisao, m0.codigo medicao, m0.revisao medicao_revisao, m0.data_cobranca, m0.data_aprovacao, t0.nota, t0.tipo_fatura, e0.descricao empresa, c0.razao_social cliente, c0.id cliente_id, 

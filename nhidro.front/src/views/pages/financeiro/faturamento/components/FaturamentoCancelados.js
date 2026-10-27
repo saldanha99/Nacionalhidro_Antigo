@@ -12,7 +12,8 @@ import { connect } from "react-redux";
 import useEffectAfterMount from "@src/hooks/useEffectAfterMount";
 import ReactTable from "react-table-v6";
 import "react-table-v6/react-table.css";
-import {FiList} from "react-icons/fi";
+import {FiList, FiFileText} from "react-icons/fi";
+import api from "@src/services/api";
 import { buscarFaturamentosRaw, buscarFaturamentoPorStatus, imprimirFaturamento, alterarFaturamento } from "../../../../../redux/actions/financeiro/faturamento";
 import ModalHistoricoFaturamento from "../modals/ModalHistoricoFaturamento";
 import { matchSorter } from "match-sorter";
@@ -69,6 +70,31 @@ const FaturamentoCancelados = (props) => {
         model.Observacoes = null;
         props.alterarFaturamento(data.id, model);
       }
+    });
+  };
+
+  /*
+   * VER A NOTA CANCELADA (27/10/2026, Andréa): "visualizar a nota cancelada sem ter
+   * que entrar no site da prefeitura". O servidor busca o PDF na Focus e carimba
+   * CANCELADA com a data e o motivo do cancelamento na prefeitura.
+   */
+  const verNotaCancelada = (fatura) => {
+    // Abre a aba já no clique para o navegador não bloquear o pop-up.
+    const janela = window.open("", "_blank");
+    if (janela) janela.document.write("<p style='font-family:sans-serif'>Buscando a nota cancelada...</p>");
+    api.postUntype("api/faturamentos/nota-cancelada", { id: fatura.id }, "blob", (status, data) => {
+      if (status !== 200 || !(data instanceof Blob)) {
+        if (janela) janela.close();
+        const resposta = status?.response?.data;
+        const mostrar = (texto) => MySwal.fire({ icon: "warning", title: "Nota cancelada", text: texto || "Não foi possível abrir a nota cancelada agora. Tente de novo em instantes." });
+        if (resposta instanceof Blob) resposta.text().then((t) => { try { mostrar(JSON.parse(t)?.error?.message) } catch (e) { mostrar() } });
+        else mostrar();
+        return;
+      }
+      const url = window.URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+      if (janela) janela.location.href = url;
+      else window.open(url, "_blank");
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
     });
   };
 
@@ -159,7 +185,7 @@ const FaturamentoCancelados = (props) => {
               Header: "AÇÕES",
               accessor: "id",
               filterable: false,
-              width: 100,
+              width: 130,
               Cell: (row) => {
                 return (
                   <div>
@@ -172,6 +198,14 @@ const FaturamentoCancelados = (props) => {
                         setModal(true);
                       }}
                     />
+                    {row.original.url_arquivo_nota &&
+                      <FiFileText
+                        title="Ver a nota cancelada (PDF com a data e o motivo do cancelamento)"
+                        style={{ margin: "5px", cursor: "pointer" }}
+                        size={20}
+                        onClick={() => verNotaCancelada(row.original)}
+                      />
+                    }
                     <ArrowLeftCircle
                         title="Refazer Nota"
                         style={{ margin: "5px", cursor: "pointer" }}
