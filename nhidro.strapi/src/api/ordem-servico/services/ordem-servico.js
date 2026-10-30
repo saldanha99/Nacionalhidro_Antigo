@@ -443,8 +443,9 @@ module.exports = createCoreService(
     t0.revisao,
     e0.descricao AS empresa,
     c0.razao_social AS cliente,
-    c0.cnpj AS cliente_cnpj,
-    v0.username, 
+    -- pessoa física não tem CNPJ: o CPF também vale como documento do cliente
+    COALESCE(NULLIF(TRIM(c0.cnpj), ''), NULLIF(TRIM(c0.cpf), '')) AS cliente_cnpj,
+    v0.username,
     t0.data_proposta, 
     t0.data_validade, 
     t0.data_status
