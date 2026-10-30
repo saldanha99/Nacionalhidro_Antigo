@@ -577,6 +577,14 @@ export const Enum_TipoPrecificacao = {
     Hora:2
 }
 
+// Quais horas da baixa o serviço por hora cobra. No Frete a tolerância já está no
+// valor fixo do frete, então o serviço de "horas extras" cobra só o que passou dela.
+export const Enum_BaseCobrancaHora = {
+    HoraMinima: 1,
+    HorasExtras: 2,
+    MinimaMaisExtras: 3
+}
+
 export const List_StatusPrecificacao = [{ value: Enum_StatusPrecificacao.EmAberto, label: 'Em aberto' }, { value: Enum_StatusPrecificacao.Precificada, label: 'Precificada' }, { value: Enum_StatusPrecificacao.EmMedicao, label: 'Em medição'}, { value: Enum_StatusPrecificacao.ForaPeriodo, label: 'Fora do período'}]
 
 export const Enum_StatusMedicao = {

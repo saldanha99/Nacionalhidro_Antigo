@@ -40,6 +40,9 @@
     },
     "ObservacaoCobranca": {
       "type": "string"
+    },
+    "BaseCobrancaHora": {
+      "type": "integer"
     }
   }
 }

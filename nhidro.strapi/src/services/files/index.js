@@ -6,7 +6,7 @@ const readFile = utils.promisify(fs.readFile)
 var mustache = require('mustache');
 var moment = require("moment");
 const { formatNumberReal, minTommss } = require("../../../utils/functions");
-const { Enum_RegimeTributario, Enum_TipoResponsabilidade } = require("../../../utils/enums");
+const { Enum_RegimeTributario, Enum_TipoResponsabilidade, Enum_TiposCobranca } = require("../../../utils/enums");
 const axios = require('axios').default;
 const _ = require('lodash');
 const sharp = require('sharp');
@@ -178,6 +178,18 @@ async function getHTMLOrdemServico (ordem) {
   return rendered
 }
 
+// Segunda linha da descrição no serviço por hora que não cobra só a hora mínima
+// (mesmos valores de Enum_BaseCobrancaHora do front: 2 = só extras, 3 = mínima + extras)
+function detalheHorasCobradas (servico, ordem) {
+  if (servico.TipoPrecificacao === 1 || ![2, 3].includes(servico.BaseCobrancaHora)) return null;
+  const minima = ordem.HoraTotal ? moment(ordem.HoraTotal, "HH:mm").format("HH:mm") : "00:00";
+  const extras = ordem.HoraAdicional ? moment(ordem.HoraAdicional, "HH:mm").format("HH:mm") : "00:00";
+  const nomeMinima = ordem.TipoCobranca === Enum_TiposCobranca.Frete ? "tolerância" : "hora mínima";
+  return servico.BaseCobrancaHora === 2
+    ? `Horas extras: ${extras} além de ${minima} de ${nomeMinima}`
+    : `${minima} de ${nomeMinima} + ${extras} de horas extras`;
+}
+
 async function getHTMLMedicao (medicao) {
   medicao.Servicos = [];
   let desconto = 0;
@@ -194,6 +206,7 @@ async function getHTMLMedicao (medicao) {
         Placa: obj.Escala?.EscalaVeiculos?.map(item => { return `${item.Veiculo?.Placa}; ` }),
         Equipamento: obj.Equipamento.Equipamento,
         DescricaoServico: `${s.Discriminacao}; ${s.ObservacaoCobranca || ''}`,
+        DetalheHoras: detalheHorasCobradas(s, obj),
         TipoCobranca: `${s.TipoPrecificacao === 1 ? 'FIXO' : 'HORA'}`,
         ValorUnitario: s.TipoPrecificacao === 1 ? formatNumberReal(s.ValorUnitario) : formatNumberReal(s.ValorHora),
         HoraEntradaSaida: obj.HoraEntrada && s.TipoPrecificacao !== 1 ? `${moment(obj.HoraEntrada, "HH:mm").format("HH:mm")} / ${moment(obj.HoraSaida, "HH:mm").format("HH:mm")}` : '-',

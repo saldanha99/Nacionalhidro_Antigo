@@ -17,7 +17,7 @@ import Select from "react-select";
 import "@styles/base/pages/modal.scss";
 import NumberFormat from "react-number-format";
 import { FiMinusCircle } from "react-icons/fi";
-import { Enum_TipoPrecificacao, Lista_TiposHoraAdicional } from "../../../../../utility/enum/Enums";
+import { Enum_TipoPrecificacao, Lista_TiposHoraAdicional, Enum_BaseCobrancaHora, Enum_TiposCobranca } from "../../../../../utility/enum/Enums";
 import { TimeStringToFloat } from "../../../../../utility/date/date";
 
 const ModalPrecificacao = (props) => {
@@ -26,12 +26,68 @@ const ModalPrecificacao = (props) => {
   const [data, setData] = useState({});
   const [isValid, setIsValid] = useState(true);
 
+  // Serviço de horas extras, ou Frete com valor fixo (a tolerância já está no frete): cobra só o que passou
+  const baseCobrancaPadrao = (servico, ordem) => {
+    if (/HORA.*(EXTRA|EXCEDENTE|ADICIONA)|(EXTRA|EXCEDENTE|ADICIONA).*HORA/i.test(servico.Discriminacao || "")) {
+      return Enum_BaseCobrancaHora.HorasExtras
+    }
+    const temValorFixo = ordem.Servicos?.some(s => s.TipoPrecificacao === Enum_TipoPrecificacao.Servico)
+    if (ordem.TipoCobranca === Enum_TiposCobranca.Frete && temValorFixo) return Enum_BaseCobrancaHora.HorasExtras
+    return Enum_BaseCobrancaHora.HoraMinima
+  }
+
+  const formatarHoras = (hora) => (hora && hora.length >= 5 ? hora.substring(0, 5) : "00:00")
+
+  const opcoesBaseCobranca = (ordem) => {
+    const minima = formatarHoras(ordem.HoraTotal)
+    const extras = formatarHoras(ordem.HoraAdicional)
+    const soma = TimeStringToFloat(ordem.HoraTotal) + TimeStringToFloat(ordem.HoraAdicional)
+    const total = `${String(Math.floor(soma)).padStart(2, "0")}:${String(Math.round((soma % 1) * 60)).padStart(2, "0")}`
+    const nomeMinima = ordem.TipoCobranca === Enum_TiposCobranca.Frete ? "Tolerância" : "Hora mínima"
+    return [
+      { value: Enum_BaseCobrancaHora.HoraMinima, label: `${nomeMinima} (${minima})` },
+      { value: Enum_BaseCobrancaHora.HorasExtras, label: `Só horas extras (${extras})` },
+      { value: Enum_BaseCobrancaHora.MinimaMaisExtras, label: `${nomeMinima} + extras (${total})` }
+    ]
+  }
+
+  const quantidadeCobrada = (servico, ordem) => {
+    const minima = TimeStringToFloat(ordem.HoraTotal)
+    const extras = TimeStringToFloat(ordem.HoraAdicional)
+    if (servico.BaseCobrancaHora === Enum_BaseCobrancaHora.HorasExtras) return extras
+    if (servico.BaseCobrancaHora === Enum_BaseCobrancaHora.MinimaMaisExtras) return minima + extras
+    return minima
+  }
+
+  // OS precificada antes da opção "Cobrar": deduz pela quantidade gravada, sem mudar o valor salvo
+  const baseCobrancaGravada = (servico, ordem) => {
+    const minima = TimeStringToFloat(ordem.HoraTotal)
+    const extras = TimeStringToFloat(ordem.HoraAdicional)
+    const qtd = Number(servico.Quantidade)
+    if (Math.abs(qtd - minima) < 0.01) return Enum_BaseCobrancaHora.HoraMinima
+    if (Math.abs(qtd - extras) < 0.01) return Enum_BaseCobrancaHora.HorasExtras
+    if (Math.abs(qtd - (minima + extras)) < 0.01) return Enum_BaseCobrancaHora.MinimaMaisExtras
+    return Enum_BaseCobrancaHora.HoraMinima
+  }
+
   useEffect(() => {
     if (open) {
       ordem.Servicos?.forEach(element => {
         element.TipoPrecificacao = element.TipoPrecificacao ?? Enum_TipoPrecificacao.Servico
       });
-      setData(ordem);
+      ordem.Servicos?.forEach(element => {
+        if (element.TipoPrecificacao === Enum_TipoPrecificacao.Hora && !element.BaseCobrancaHora) {
+          element.BaseCobrancaHora = ordem.DataPrecificacao && element.Quantidade != null
+            ? baseCobrancaGravada(element, ordem)
+            : baseCobrancaPadrao(element, ordem)
+        }
+      });
+      // recalcula ao abrir para o total já refletir as horas que o serviço cobra
+      if (ordem.Servicos?.some(x => x.TipoPrecificacao === Enum_TipoPrecificacao.Hora)) {
+        handleChangeCalculoPrecificacao(ordem)
+      } else {
+        setData(ordem);
+      }
     }
   }, [open, ordem]);
 
@@ -72,11 +128,8 @@ const ModalPrecificacao = (props) => {
         servico.ValorTotal = (servico.ValorUnitario * servico.Quantidade)
         dataobj.PrecificacaoTotalServico += servico.ValorTotal
       } else {
-        const hrTotal = data.HoraTotal.split(":");
-        const valorHr = Number(hrTotal[0]),
-        valorMin = Number(hrTotal[1]) / 60;
-        
-        servico.Quantidade = Number(valorHr + valorMin)
+        servico.BaseCobrancaHora = servico.BaseCobrancaHora || baseCobrancaPadrao(servico, dataobj)
+        servico.Quantidade = quantidadeCobrada(servico, dataobj)
 
         servico.ValorExtraHora = 0;
         servico?.ServicosHorasAdicionais?.map((item) => {
@@ -90,8 +143,8 @@ const ModalPrecificacao = (props) => {
       }
       dataobj.PrecificacaoValorTotal += servico.ValorTotal
     });
-    dataobj.PrecificacaoValorTotal = dataobj.PrecificacaoValorTotal + dataobj.PrecificacaoValorExtra - dataobj.PrecificacaoDesconto
-    setData({ ...data, dataobj });
+    dataobj.PrecificacaoValorTotal = dataobj.PrecificacaoValorTotal + (dataobj.PrecificacaoValorExtra || 0) - (dataobj.PrecificacaoDesconto || 0)
+    setData({ ...dataobj });
   }
 
   const hasNullValue = data?.Servicos?.some(x => x.TipoPrecificacao === Enum_TipoPrecificacao.Servico? x.ValorUnitario === null || x.Quantidade === null : x.ValorHora === null);
@@ -427,7 +480,7 @@ const ModalPrecificacao = (props) => {
                               <Row>
                                 <Col>
                                   <Row>
-                                    <Col md="4">
+                                    <Col md="3">
                                       <FormGroup>
                                         <Label className="font-weight-bolder">
                                           Descrição do Serviço
@@ -495,7 +548,30 @@ const ModalPrecificacao = (props) => {
                                         />
                                       </FormGroup>
                                     </Col>
-                                    <Col md="1"></Col>
+                                    <Col md="3">
+                                      <FormGroup>
+                                        <Label className="font-weight-bolder">
+                                          Cobrar
+                                        </Label>
+                                        <Select
+                                          className="React"
+                                          classNamePrefix="select"
+                                          styles={{
+                                            menu: (provided) => ({ ...provided, zIndex: 9999 }),
+                                            control: (provided) => ({ ...provided, minHeight: 0, height: "3rem" })
+                                          }}
+                                          name="baseCobrancaHora"
+                                          options={opcoesBaseCobranca(data)}
+                                          value={opcoesBaseCobranca(data).filter(
+                                            (option) => option.value === x.BaseCobrancaHora
+                                          )}
+                                          onChange={(e) => {
+                                            data.Servicos[i].BaseCobrancaHora = e.value;
+                                            handleChangeCalculoPrecificacao(data);
+                                          }}
+                                        />
+                                      </FormGroup>
+                                    </Col>
                                   </Row>
                                 </Col>
                               </Row>
