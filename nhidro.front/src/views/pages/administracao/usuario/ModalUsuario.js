@@ -161,6 +161,21 @@ const ModalUsuario = (props) => {
                   />
                 </div>
               </Col>
+              <Col md="6" className="mt-1">
+                <FormGroup>
+                  <Label style={{fontSize:"0.7rem"}} className="font-weight-bolder">Código de vendedor</Label>
+                  <Input
+                    type="text"
+                    name="CodigoVendedor"
+                    placeholder="Ex.: 001"
+                    maxLength={10}
+                    value={usuario.CodigoVendedor || ''}
+                    onChange={(e) => {
+                      setUsuario({ ...usuario, CodigoVendedor: e.target.value.trim() || null })
+                    }}
+                  />
+                </FormGroup>
+              </Col>
               {alterarAssinatura ? <Col md="6" className="mt-1">
                 <FormGroup>
                   <Label style={{fontSize:"0.7rem"}} className="font-weight-bolder">Assinatura <a style={{marginLeft:80}} onClick={e => setAlterarAssinatura(false)}> <u>Importar nova</u></a></Label>

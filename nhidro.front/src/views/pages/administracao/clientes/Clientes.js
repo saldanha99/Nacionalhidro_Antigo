@@ -15,6 +15,7 @@ import "@styles/base/plugins/forms/pickers/form-flat-pickr.scss";
 import ReactPaginate from "react-paginate"
 import { updateFlag  } from "@src/redux/actions/flags/updateFlagActions"
 import {ToastContent } from "@utils"
+import { rotuloVendedor } from "../../../../utility/Utils"
 import { toast, Slide } from "react-toastify"
 import {
     ChevronDown,
@@ -100,7 +101,8 @@ const Clientes = (props) => {
         item?.Ie?.toUpperCase().includes(value.toUpperCase())  ||
         item?.Rg?.toUpperCase().includes(value.toUpperCase())  ||
         item?.Cidade?.toUpperCase().includes(value.toUpperCase())  ||
-        item?.Segmento?.toUpperCase().includes(value.toUpperCase())
+        item?.Segmento?.toUpperCase().includes(value.toUpperCase()) ||
+        (rotuloVendedor(item?.Vendedor) || 'SEM VENDEDOR').toUpperCase().includes(value.toUpperCase())
 
         if (startsWith) {
           return startsWith
@@ -354,7 +356,7 @@ useEffectAfterMount(() => {
                     selector: "Vendedor",
                     sortable: true,
                     minWidth: "50px",
-                    cell: (row) => <span>{row?.Vendedor?.username || "-"}</span>
+                    cell: (row) => <span>{rotuloVendedor(row?.Vendedor) || "SEM VENDEDOR"}</span>
                   }
                 ]}
                 paginationPerPage={10}

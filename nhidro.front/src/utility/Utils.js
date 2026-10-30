@@ -222,6 +222,12 @@ export const getTipoFaturamento = (tipo) => {
   }
 }
 
+// "001 - SERGIO ALMEIDA": o código do vendedor vem antes do nome, e a busca acha pelos dois
+export const rotuloVendedor = (vendedor) => {
+  if (!vendedor) return ''
+  return vendedor.CodigoVendedor ? `${vendedor.CodigoVendedor} - ${vendedor.username}` : vendedor.username
+}
+
 export const normalize = (data) => {
   const isObject = (data) => Object.prototype.toString.call(data) === '[object Object]'
   const isArray = (data) => Object.prototype.toString.call(data) === '[object Array]'

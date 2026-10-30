@@ -157,6 +157,14 @@ const Routes = [
     title: "Relatório"
   },
   {
+    path: '/relatorio-carteira',
+    component: lazy(() => import('../../views/pages/relatorios/comercial/carteira/RelatorioCarteira')),
+    roles:['Gerencial'],
+    isActionBack: true,
+    subTitle:"Carteira por vendedor",
+    title: "Relatório"
+  },
+  {
     path: '/relatorio-ordem',
     component: lazy(() => import('../../views/pages/relatorios/logistica/ordem/RelatorioOrdem')),
     roles:['Gerencial', 'Logistica', 'Recursos Humanos', 'Recursos Humanos 2', 'Faturamento', 'Controle Adm'],

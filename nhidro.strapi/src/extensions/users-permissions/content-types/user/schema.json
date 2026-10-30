@@ -75,6 +75,9 @@
     "aprovadorMedicao": {
       "type": "boolean",
       "default": false
+    },
+    "CodigoVendedor": {
+      "type": "string"
     }
   }
 }

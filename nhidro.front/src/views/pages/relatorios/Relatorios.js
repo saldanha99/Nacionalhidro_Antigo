@@ -4,7 +4,7 @@ import {
   Row,
   Col 
 } from 'reactstrap'
-import { FiDollarSign, FiFolderMinus, FiFolderPlus, FiSettings, FiShoppingBag, FiSliders, FiTool} from 'react-icons/fi'
+import { FiDollarSign, FiFolderMinus, FiFolderPlus, FiSettings, FiShoppingBag, FiSliders, FiTool, FiUsers} from 'react-icons/fi'
 import { HiOutlineCog, HiAdjustments, HiOutlineDocumentText } from 'react-icons/hi'
 import { WrapperButtonBlue } from '../../styled-components/GlobalStyles'
 import { useHistory  } from "react-router-dom"
@@ -29,6 +29,17 @@ const Relatorios = () => {
               <HiOutlineDocumentText fontSize="50px" className="mb-1"  style={{display: 'inline-block'}}/>
               <div>
                 Propostas
+              </div>
+            </WrapperButtonBlue>
+          </Col>
+          <Col className="mb-3 d-flex justify-content-center" md="3">
+            <WrapperButtonBlue
+              className="text-center"
+              onClick={ () => to("/relatorio-carteira") }
+            >
+              <FiUsers fontSize="50px" className="mb-1"  style={{display: 'inline-block'}}/>
+              <div>
+                Carteira por vendedor
               </div>
             </WrapperButtonBlue>
           </Col>

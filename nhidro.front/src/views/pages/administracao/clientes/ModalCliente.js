@@ -43,7 +43,7 @@ import "flatpickr/dist/themes/light.css";
 import "@styles/base/plugins/forms/pickers/form-flat-pickr.scss";
 import { Portuguese } from "flatpickr/dist/l10n/pt.js";
 import { formatNumberReal } from '../../../../utility/number/index'
-import { exportToExcel, validaCpfCnpj } from '../../../../utility/Utils'
+import { exportToExcel, validaCpfCnpj, rotuloVendedor } from '../../../../utility/Utils'
 import moment from "moment"
 moment.locale("pt-br")
 import { Enum_StatusContasAReceber, Enum_StatusFaturamento, Enum_StatusMedicao, Enum_StatusOrdens, Enum_StatusPropostas, List_Segmentos } from "../../../../utility/enum/Enums"
@@ -1561,7 +1561,7 @@ const ModalCliente = (props) => {
                       options={vendedores}
                       isSearchable
                       isDisabled={user.role.name.includes('Comercial')}
-                      getOptionLabel={(option) => option?.username}
+                      getOptionLabel={(option) => rotuloVendedor(option)}
                       getOptionValue={(option) => option?.id}
                       value={
                         vendedores.filter((option) => option.id === modelCliente?.Vendedor?.id)
