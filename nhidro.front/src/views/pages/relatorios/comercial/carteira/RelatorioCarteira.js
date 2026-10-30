@@ -86,6 +86,74 @@ const resumirPorVendedor = (linhas) => {
   })
 }
 
+// Painel comercial (pedido da Lucielle, 30/10): desempenho de quem fez a proposta no
+// período. Fechada = aprovada; não efetivada = reprovada ou cancelada; aguardando
+// retorno = em aberto e já enviada ao cliente; em elaboração = em aberto e não enviada
+const painelPorVendedor = (propostas) => {
+  const ultimas = {}
+  propostas.forEach(p => {
+    const atual = ultimas[p.Codigo]
+    if (!atual || (p.Revisao || 0) > (atual.Revisao || 0)) ultimas[p.Codigo] = p
+  })
+
+  const grupos = {}
+  Object.values(ultimas).forEach(p => {
+    const id = p.Usuario?.id || 0
+    const g = grupos[id] || {
+      VendedorId: id, CodigoVendedor: p.Usuario?.CodigoVendedor || '-', Vendedor: p.Usuario?.username || SEM_VENDEDOR,
+      Feitas: 0, Clientes: new Set(), Fechadas: 0, NaoEfetivadas: 0, Aguardando: 0, EmElaboracao: 0,
+      ValorFechado: 0, ValorAguardando: 0
+    }
+    const valor = Number(p.Valor) || 0
+    g.Feitas += 1
+    if (p.Cliente?.id) g.Clientes.add(p.Cliente.id)
+    if (p.Status === Enum_StatusPropostas.Aprovada) {
+      g.Fechadas += 1
+      g.ValorFechado += valor
+    } else if (p.Status === Enum_StatusPropostas.Reprovada || p.Status === Enum_StatusPropostas.Cancelado) {
+      g.NaoEfetivadas += 1
+    } else if (p.Status === Enum_StatusPropostas.Aberta && p.Enviada) {
+      g.Aguardando += 1
+      g.ValorAguardando += valor
+    } else if (p.Status === Enum_StatusPropostas.Aberta) {
+      g.EmElaboracao += 1
+    }
+    grupos[id] = g
+  })
+
+  return Object.values(grupos)
+    .map(g => ({ ...g, Clientes: g.Clientes.size, Conversao: g.Feitas ? Math.round((g.Fechadas / g.Feitas) * 100) : 0 }))
+    .sort((a, b) => {
+      if (a.Vendedor === SEM_VENDEDOR) return 1
+      if (b.Vendedor === SEM_VENDEDOR) return -1
+      const ordem = (g) => (g.CodigoVendedor !== "-" ? `0${g.CodigoVendedor}` : `1${g.Vendedor}`)
+      return ordem(a).localeCompare(ordem(b))
+    })
+}
+
+const somarPainel = (linhas) => {
+  const t = { CodigoVendedor: '', Vendedor: 'TOTAL', Feitas: 0, Clientes: 0, Fechadas: 0, NaoEfetivadas: 0, Aguardando: 0, EmElaboracao: 0, ValorFechado: 0, ValorAguardando: 0 }
+  linhas.forEach(l => {
+    ['Feitas', 'Clientes', 'Fechadas', 'NaoEfetivadas', 'Aguardando', 'EmElaboracao', 'ValorFechado', 'ValorAguardando'].forEach(k => { t[k] += l[k] })
+  })
+  t.Conversao = t.Feitas ? Math.round((t.Fechadas / t.Feitas) * 100) : 0
+  return t
+}
+
+const colunasPainel = [
+  { Header: "Cód.", accessor: "CodigoVendedor", width: 70 },
+  { Header: "Vendedor", accessor: "Vendedor" },
+  { Header: "Propostas feitas", accessor: "Feitas" },
+  { Header: "Clientes atendidos", accessor: "Clientes" },
+  { Header: "Fechadas", accessor: "Fechadas" },
+  { Header: "Não efetivadas", accessor: "NaoEfetivadas" },
+  { Header: "Aguardando retorno", accessor: "Aguardando" },
+  { Header: "Em elaboração", accessor: "EmElaboracao" },
+  { Header: "Conversão (%)", id: "Conversao", accessor: (v) => `${v.Conversao}%` },
+  { Header: "Valor fechado (R$)", id: "ValorFechado", accessor: (v) => formatNumberReal(v.ValorFechado) },
+  { Header: "Valor aguardando (R$)", id: "ValorAguardando", accessor: (v) => formatNumberReal(v.ValorAguardando) }
+]
+
 const filtroTexto = (chave) => (filter, rows) => matchSorter(rows, filter.value, { keys: [chave] })
 
 const colunasResumo = [
@@ -144,7 +212,7 @@ const RelatorioCarteira = () => {
     setCarregando(true)
     const query = qs.stringify({
       filters: { DataProposta: { $between: [moment(datas[0]).format('YYYY-MM-DD'), moment(datas[1]).format('YYYY-MM-DD')] } },
-      populate: ['Cliente']
+      populate: ['Cliente', 'Usuario']
     }, { encodeValuesOnly: true })
     api.get(`api/propostas?${query}`, (data) => {
       setPropostas(Array.isArray(data?.data) ? normalize(data) : [])
@@ -167,11 +235,18 @@ const RelatorioCarteira = () => {
   ]
   const linhasFiltradas = linhas.filter(l => (vendedor === 'todos' || l.VendedorId === vendedor) && (!soComProposta || l.Propostas > 0))
   const resumo = resumirPorVendedor(linhasFiltradas)
+  // no painel o filtro de vendedor vale para quem fez a proposta
+  const painel = painelPorVendedor(propostas).filter(g => vendedor === 'todos' || g.VendedorId === vendedor)
+  const totalPainel = somarPainel(painel)
 
   return (
     <div>
       <Row className="mt-5">
         <Col style={{ textAlign: 'right' }}>
+          <Button color='secondary' onClick={() => exportar([...painel, totalPainel], colunasPainel, 'Painel_Comercial')}>
+            Exportar painel
+          </Button>
+          {' '}
           <Button color='secondary' onClick={() => exportar(resumo, colunasResumo, 'Resumo_Carteira_Vendedores')}>
             Exportar resumo
           </Button>
@@ -233,7 +308,34 @@ const RelatorioCarteira = () => {
         {carregando ? <div style={{ overflow: 'hidden' }}>
           <SkeletonDataTable configDataTableSkeleton={{ nameRows: colunasClientes.map(c => ({ name: c.Header.toUpperCase() })), quantityItensOnRow: colunasClientes.length }} />
         </div> : <>
-          <h5 className="text-bold-600 mt-2 ml-1">Resumo por vendedor</h5>
+          <h5 className="text-bold-600 mt-2 ml-1">Painel comercial: propostas do período por quem fez</h5>
+          <Row className="mx-0 mb-1">
+            {[
+              ['Propostas feitas', totalPainel.Feitas],
+              ['Fechadas', totalPainel.Fechadas],
+              ['Não efetivadas', totalPainel.NaoEfetivadas],
+              ['Aguardando retorno', totalPainel.Aguardando],
+              ['Conversão', `${totalPainel.Conversao}%`],
+              ['Valor fechado', `R$ ${formatNumberReal(totalPainel.ValorFechado)}`]
+            ].map(([rotulo, valor]) => (
+              <Col key={rotulo} md="2" sm="6" className="mb-1">
+                <div style={{ border: '1px solid #dee2e6', borderRadius: 6, padding: '10px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#6e6b7b' }}>{rotulo}</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#2f4b74' }}>{valor}</div>
+                </div>
+              </Col>
+            ))}
+          </Row>
+          <ReactTable
+            style={{ fontSize: 'small', textAlign: 'center' }}
+            columns={colunasPainel}
+            data={painel.length ? [...painel, totalPainel] : []}
+            pageSize={Math.max(painel.length + 1, 1)}
+            showPagination={false}
+            noDataText="Nenhuma proposta no período"
+            className="-striped -highlight"
+          />
+          <h5 className="text-bold-600 mt-2 ml-1">Carteira: clientes de cada vendedor no cadastro</h5>
           <ReactTable
             style={{ fontSize: 'small', textAlign: 'center' }}
             columns={colunasResumo}

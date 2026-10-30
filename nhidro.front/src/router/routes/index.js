@@ -161,7 +161,7 @@ const Routes = [
     component: lazy(() => import('../../views/pages/relatorios/comercial/carteira/RelatorioCarteira')),
     roles:['Gerencial'],
     isActionBack: true,
-    subTitle:"Carteira por vendedor",
+    subTitle:"Painel comercial",
     title: "Relatório"
   },
   {

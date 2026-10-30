@@ -39,7 +39,7 @@ const Relatorios = () => {
             >
               <FiUsers fontSize="50px" className="mb-1"  style={{display: 'inline-block'}}/>
               <div>
-                Carteira por vendedor
+                Painel comercial
               </div>
             </WrapperButtonBlue>
           </Col>
