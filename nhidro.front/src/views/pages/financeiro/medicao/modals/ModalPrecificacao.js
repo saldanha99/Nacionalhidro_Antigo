@@ -27,10 +27,11 @@ const ModalPrecificacao = (props) => {
   const [isValid, setIsValid] = useState(true);
 
   // Serviço de horas extras, ou Frete com valor fixo (a tolerância já está no frete): cobra só o que passou
+  const ehServicoHorasExtras = (servico) =>
+    /HORA.*(EXTRA|EXCEDENTE|ADICIONA)|(EXTRA|EXCEDENTE|ADICIONA).*HORA/i.test(servico.Discriminacao || "")
+
   const baseCobrancaPadrao = (servico, ordem) => {
-    if (/HORA.*(EXTRA|EXCEDENTE|ADICIONA)|(EXTRA|EXCEDENTE|ADICIONA).*HORA/i.test(servico.Discriminacao || "")) {
-      return Enum_BaseCobrancaHora.HorasExtras
-    }
+    if (ehServicoHorasExtras(servico)) return Enum_BaseCobrancaHora.HorasExtras
     const temValorFixo = ordem.Servicos?.some(s => s.TipoPrecificacao === Enum_TipoPrecificacao.Servico)
     if (ordem.TipoCobranca === Enum_TiposCobranca.Frete && temValorFixo) return Enum_BaseCobrancaHora.HorasExtras
     return Enum_BaseCobrancaHora.HoraMinima
@@ -379,7 +380,8 @@ const ModalPrecificacao = (props) => {
                                     checked={x.TipoPrecificacao === Enum_TipoPrecificacao.Hora}
                                     onChange={(e) => {
                                       data.Servicos[i].TipoPrecificacao = e.target.value ? Enum_TipoPrecificacao.Hora : Enum_TipoPrecificacao.Servico
-                                      setData({...data, Servicos: data.Servicos})
+                                      // já define o "Cobrar": em branco, levava a escolher a tolerância no serviço de horas extras
+                                      handleChangeCalculoPrecificacao(data)
                                     }}
                                   />
                                 </Col>
@@ -570,6 +572,11 @@ const ModalPrecificacao = (props) => {
                                             handleChangeCalculoPrecificacao(data);
                                           }}
                                         />
+                                        {x.BaseCobrancaHora === Enum_BaseCobrancaHora.HoraMinima && ehServicoHorasExtras(x) && TimeStringToFloat(data.HoraAdicional) > 0 && (
+                                          <small className="text-danger">
+                                            Serviço de horas extras cobrando {formatarHoras(data.HoraTotal)}. As horas extras são {formatarHoras(data.HoraAdicional)}: confira se o certo é "Só horas extras".
+                                          </small>
+                                        )}
                                       </FormGroup>
                                     </Col>
                                   </Row>
