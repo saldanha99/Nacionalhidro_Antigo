@@ -66,6 +66,16 @@ const separarCodigosTributacao = (servico = {}) => {
     };
 };
 
+/**
+ * Desde 05/11/2026 a prefeitura de Campinas exige a inscrição municipal com 9
+ * dígitos, sem aviso. Com menos, recusa com E0314 (Focus, chamado 250650).
+ */
+const inscricaoMunicipalDps = (valor, municipioEmissora) => {
+    const inscricao = digitos(valor);
+    if (!inscricao) return undefined;
+    return digitos(municipioEmissora) === CAMPINAS ? inscricao.padStart(9, '0') : inscricao;
+};
+
 const texto = (valor) => {
     if (valor === undefined || valor === null) return '';
     return String(valor).replace(/�/g, ' ').trim();
@@ -274,7 +284,7 @@ const montarDpsNacional = (dados) => {
         data_competencia: dataCompetencia(dados.data_emissao),
         codigo_municipio_emissora: prestadorMun,
         cnpj_prestador: digitos(prestador.cnpj),
-        inscricao_municipal_prestador: digitos(prestador.inscricao_municipal) || undefined,
+        inscricao_municipal_prestador: inscricaoMunicipalDps(prestador.inscricao_municipal, prestadorMun),
         // 1: Não optante; 3: ME/EPP do Simples Nacional
         codigo_opcao_simples_nacional: optanteSimples ? '3' : '1',
         regime_especial_tributacao: '0',
