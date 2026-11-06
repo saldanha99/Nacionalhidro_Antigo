@@ -50,6 +50,22 @@ const PADROES_SERVICO = {
 
 const digitos = (valor) => (valor === undefined || valor === null ? '' : String(valor).replace(/\D/g, ''));
 
+/**
+ * Código nacional só aceita 6 dígitos. Gravado junto com o municipal na tela
+ * (ex.: 071001004), a Focus recusa no schema; separa em 071001 + 004.
+ */
+const separarCodigosTributacao = (servico = {}) => {
+    const nacional = digitos(servico.codigo_tributacao_nacional_iss);
+    const municipal = digitos(servico.codigo_tributacao_municipal_iss);
+    if (nacional.length === 9) {
+        return { nacional: nacional.slice(0, 6), municipal: municipal || nacional.slice(6) };
+    }
+    return {
+        nacional: nacional || PADROES_SERVICO.codigo_tributacao_nacional_iss,
+        municipal: municipal || PADROES_SERVICO.codigo_tributacao_municipal_iss,
+    };
+};
+
 const texto = (valor) => {
     if (valor === undefined || valor === null) return '';
     return String(valor).replace(/�/g, ' ').trim();
@@ -274,8 +290,8 @@ const montarDpsNacional = (dados) => {
         email_tomador: texto(tomador.email).split(/[;,\s]+/)[0] || undefined,
 
         codigo_municipio_prestacao: localPrestacao,
-        codigo_tributacao_nacional_iss: digitos(servico.codigo_tributacao_nacional_iss) || PADROES_SERVICO.codigo_tributacao_nacional_iss,
-        codigo_tributacao_municipal_iss: digitos(servico.codigo_tributacao_municipal_iss) || PADROES_SERVICO.codigo_tributacao_municipal_iss,
+        codigo_tributacao_nacional_iss: separarCodigosTributacao(servico).nacional,
+        codigo_tributacao_municipal_iss: separarCodigosTributacao(servico).municipal,
         codigo_nbs: digitos(servico.codigo_nbs) || PADROES_SERVICO.codigo_nbs,
         descricao_servico: montarDescricao(dados),
         valor_servico: valorServico,
